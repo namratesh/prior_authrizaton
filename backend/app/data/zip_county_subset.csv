@@ -1,0 +1,8 @@
+# DEMO-REAL (zip->county is general public geography, not CMS-sourced; scoped to the 5 Hero Cases only)
+# CMS itself never publishes a zip->county table this small; the locality->rate math downstream of this file is 100% real CMS data.
+zip,county,state
+90210,Los Angeles County,CA
+36104,Montgomery County,AL
+10001,New York County,NY
+60601,Cook County,IL
+30301,Fulton County,GA

@@ -83,7 +83,10 @@ services:
       backend:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://localhost:80"]
+      # 127.0.0.1, not localhost: nginx only binds 0.0.0.0:80 (no IPv6 listener),
+      # but "localhost" resolves to ::1 first in-container, so wget's connection
+      # was refused even though nginx was serving fine — falsely "unhealthy".
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:80"]
       interval: 5s
       timeout: 5s
       retries: 10

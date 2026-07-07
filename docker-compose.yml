@@ -51,6 +51,9 @@ services:
       CMS_CONVERSION_FACTOR_2026: ${CMS_CONVERSION_FACTOR_2026:-33.4009}
       FRONTEND_ORIGIN: http://localhost:${FRONTEND_PORT:-5173}
       BACKEND_PORT: ${BACKEND_PORT:-8000}
+      POLICIES_DIR: /aarp_policies
+    volumes:
+      - ./aarp_policies:/aarp_policies:ro
     depends_on:
       postgres:
         condition: service_healthy

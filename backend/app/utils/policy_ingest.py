@@ -4,6 +4,7 @@ Ingest AARP EOC/SOB policy PDFs into the aarp_policies Qdrant collection.
 // DEMO-REAL: real pdfplumber extraction + fastembed dense/sparse encoding of the
 provided policy PDFs, not a mocked/stubbed index.
 """
+import os
 from pathlib import Path
 
 from qdrant_client.models import PointStruct, SparseVector
@@ -19,7 +20,14 @@ from app.core.qdrant_setup import (
 )
 from app.utils.pdf_chunker import extract_chunks
 
-DEFAULT_POLICIES_DIR = Path(__file__).resolve().parents[3] / "aarp_policies"
+# parents[3] climbs utils -> app -> backend -> repo root, which only holds on a
+# host checkout. Inside the Docker image (Dockerfile does `COPY app ./app` into
+# WORKDIR /app) there's no "backend" layer, so that arithmetic lands on "/".
+# POLICIES_DIR lets docker-compose point this at the bind-mounted folder instead.
+DEFAULT_POLICIES_DIR = Path(
+    os.environ.get("POLICIES_DIR")
+    or Path(__file__).resolve().parents[3] / "aarp_policies"
+)
 
 BATCH_SIZE = 64
 

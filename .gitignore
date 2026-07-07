@@ -11,6 +11,9 @@ out/
 .nuxt/
 .cache/
 
+*.pptx
+*.key
+
 # Python / Backend
 __pycache__/
 *.py[cod]

@@ -44,6 +44,9 @@ venv.bak/
 *.sqlite3
 *.sqlite-journal
 
+# Uploaded PA request PDFs (synthetic Hero Case docs + demo uploads)
+backend/data/uploads/
+
 # OS files
 .DS_Store
 .DS_Store?

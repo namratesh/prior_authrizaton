@@ -29,13 +29,19 @@ Hard-gate flags:
     routing decision for the caller, made here.
   - POLICY_AMBIGUOUS — RAG's top policy match scored below its ambiguity
     threshold (or found nothing).
+
+FINANCIAL_EXCEPTION/RATE_UNAVAILABLE and POLICY_AMBIGUOUS are only evaluated
+when "cost"/"rag" are in routing.relevant_agents (Intake's query-driven
+routing hint, graph.py's route_after_intake) — otherwise a case whose query
+never asked a cost/policy question would always trip RATE_UNAVAILABLE just
+because Cost/RAG never ran, defeating the point of skipping them.
 """
 import json
 
 from app.core.llm_client import generate_text
 from app.core.state import AgenticPAState, RoutingPayload
 
-INTAKE_CONFIDENCE_THRESHOLD = 0.75
+INTAKE_CONFIDENCE_THRESHOLD = 0.85
 
 LOW_CONFIDENCE_EXTRACTION = "LOW_CONFIDENCE_EXTRACTION"
 FINANCIAL_EXCEPTION = "FINANCIAL_EXCEPTION"
@@ -73,12 +79,14 @@ def evaluate_hard_gates(state: AgenticPAState) -> list[str]:
     if confidence is None or confidence < INTAKE_CONFIDENCE_THRESHOLD:
         flags.append(LOW_CONFIDENCE_EXTRACTION)
 
-    if state.financial.is_overcharge is True:
-        flags.append(FINANCIAL_EXCEPTION)
-    elif state.financial.is_overcharge is None:
-        flags.append(RATE_UNAVAILABLE)
+    relevant_agents = state.routing.relevant_agents
+    if "cost" in relevant_agents:
+        if state.financial.is_overcharge is True:
+            flags.append(FINANCIAL_EXCEPTION)
+        elif state.financial.is_overcharge is None:
+            flags.append(RATE_UNAVAILABLE)
 
-    if state.policy.policy_ambiguous is True:
+    if "rag" in relevant_agents and state.policy.policy_ambiguous is True:
         flags.append(POLICY_AMBIGUOUS)
 
     return flags
@@ -100,7 +108,7 @@ def generate_rationale(state: AgenticPAState, hard_gate_flags: list[str]) -> dic
     text = generate_text(
         system_prompt=RATIONALE_SYSTEM_PROMPT,
         user_content=json.dumps(user_payload, default=str),
-        max_tokens=1024,
+        max_tokens=2048,
     )
     return json.loads(_strip_markdown_fence(text))
 

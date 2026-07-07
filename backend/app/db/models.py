@@ -13,7 +13,9 @@ from sqlalchemy import (
     Enum,
     Float,
     ForeignKey,
+    Identity,
     Index,
+    Integer,
     String,
     Text,
 )
@@ -48,6 +50,9 @@ class Case(Base):
     __tablename__ = "cases"
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    case_number: Mapped[int] = mapped_column(
+        Integer, Identity(always=False), nullable=False, unique=True
+    )
     patient_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
     current_phase: Mapped[str | None] = mapped_column(String(64), nullable=True)
     final_status: Mapped[str | None] = mapped_column(String(64), nullable=True)

@@ -15,12 +15,18 @@ class ClinicalPayload(BaseModel):
     case_id: Optional[str] = None
     patient_name: Optional[str] = None
     patient_dob: Optional[str] = None
+    patient_zip: Optional[str] = None
     icd10_codes: list[str] = Field(default_factory=list)
     cpt_codes: list[str] = Field(default_factory=list)
     diagnosis_summary: Optional[str] = None
     prescribing_physician: Optional[str] = None
+    provider_npi: Optional[str] = None
+    requested_service_description: Optional[str] = None
+    billed_amount: Optional[float] = None
     extraction_confidence: Optional[float] = None
     raw_document_text: Optional[str] = None
+    few_shot_corrections_used: list[str] = Field(default_factory=list)
+    patient_query: Optional[str] = None
 
 
 class FinancialPayload(BaseModel):
@@ -56,6 +62,14 @@ class RoutingPayload(BaseModel):
     reviewer_decision: Optional[Literal["approve", "modify", "deny"]] = None
     reviewer_diffs: dict[str, Any] = Field(default_factory=dict)
     final_status: Optional[str] = None
+    sla_deadline: Optional[datetime] = None
+    case_status: Optional[str] = None
+    # Derived from the patient's claim query by Intake (rule 1: LLM used for
+    # classification/routing-hint only, never as the sole gate on a hard
+    # threshold — see the fail-safe default of "run everything" below and the
+    # relevant_agents-aware gating in peer_review_agent.evaluate_hard_gates).
+    relevant_agents: list[str] = Field(default_factory=lambda: ["cost", "rag", "alternative"])
+    query_classification_reason: Optional[str] = None
 
 
 class AuditPayload(BaseModel):
@@ -63,6 +77,8 @@ class AuditPayload(BaseModel):
 
     agent_trace: list[dict[str, Any]] = Field(default_factory=list)
     feedback_corrections_used: list[str] = Field(default_factory=list)
+    decision_letter: Optional[str] = None
+    fhir_stub: dict[str, Any] = Field(default_factory=dict)
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
 

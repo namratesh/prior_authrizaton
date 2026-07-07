@@ -15,11 +15,25 @@ callers (e.g. peer_review_agent.generate_rationale) don't need to know
 which backend served the request.
 """
 import os
+from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeoutError
 from pathlib import Path
 
 from dotenv import load_dotenv
 
 load_dotenv(Path(__file__).resolve().parents[3] / ".env")
+
+DEFAULT_TIMEOUT_SECONDS = float(os.environ.get("LLM_TIMEOUT_SECONDS", "10"))
+_executor = ThreadPoolExecutor(max_workers=8, thread_name_prefix="llm-call")
+
+
+class LLMTimeoutError(TimeoutError):
+    """Raised when a generate_text call exceeds its timeout.
+
+    // DEMO-REAL: every LLM call in this system goes through generate_text, so
+    every call site inherits this timeout. Per CLAUDE.md's reliability rules,
+    callers must catch this (or Exception generally) and fail SAFE — i.e.
+    route to human review — never treat a timeout as success.
+    """
 
 DEFAULT_PROVIDER = os.environ.get("LLM_PROVIDER", "gemini").lower()
 
@@ -113,11 +127,17 @@ def generate_text(
     user_content: str,
     max_tokens: int = 1024,
     provider: str | None = None,
+    timeout: float | None = None,
 ) -> str:
     """Call the selected LLM provider and return the raw reply text.
 
     `provider` overrides LLM_PROVIDER for this one call; otherwise the
     module-level default (env var, "gemini" if unset) is used.
+
+    Every call is bounded by `timeout` seconds (default DEFAULT_TIMEOUT_SECONDS
+    = 10, per CLAUDE.md's reliability rules — no LLM call may hang the graph
+    during a live demo). Raises LLMTimeoutError on expiry; callers must treat
+    that as a failure and fail SAFE (route to human review), never as success.
     """
     name = (provider or DEFAULT_PROVIDER).lower()
     try:
@@ -126,4 +146,11 @@ def generate_text(
         raise ValueError(
             f"Unknown LLM_PROVIDER {name!r}; expected one of {sorted(_PROVIDERS)}"
         )
-    return fn(system_prompt, user_content, max_tokens)
+    bound = timeout if timeout is not None else DEFAULT_TIMEOUT_SECONDS
+    future = _executor.submit(fn, system_prompt, user_content, max_tokens)
+    try:
+        return future.result(timeout=bound)
+    except FutureTimeoutError:
+        raise LLMTimeoutError(
+            f"LLM call to provider={name!r} exceeded {bound}s timeout"
+        )

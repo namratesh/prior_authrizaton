@@ -1,0 +1,615 @@
+<title>AgenticPA — Backend Workflow</title>
+<style>
+  :root {
+    --ink: #1a1a1a;
+    --sub: #52596b;
+    --surface: #eef1f6;
+    --card: #ffffff;
+    --border: #dde2ea;
+    --accent: #e00000;
+    --accent-tint: #fdeaea;
+    --info: #4340c7;
+    --info-tint: #ecebfa;
+    --gate: #0e7c66;
+    --gate-tint: #e6f4f0;
+    --mock-ink: #6b6f7a;
+    --mock-tint: #f0f1f3;
+    --code-tint: #f4f5f8;
+  }
+  :root[data-theme="dark"] {
+    --ink: #eceef2;
+    --sub: #a3a9b8;
+    --surface: #14161c;
+    --card: #1b1e26;
+    --border: #2b2f3a;
+    --accent: #ff5347;
+    --accent-tint: #3a1c1e;
+    --info: #9a97ff;
+    --info-tint: #26244a;
+    --gate: #3fd6b0;
+    --gate-tint: #163530;
+    --mock-ink: #a3a9b8;
+    --mock-tint: #23262f;
+    --code-tint: #22252d;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ink: #eceef2;
+      --sub: #a3a9b8;
+      --surface: #14161c;
+      --card: #1b1e26;
+      --border: #2b2f3a;
+      --accent: #ff5347;
+      --accent-tint: #3a1c1e;
+      --info: #9a97ff;
+      --info-tint: #26244a;
+      --gate: #3fd6b0;
+      --gate-tint: #163530;
+      --mock-ink: #a3a9b8;
+      --mock-tint: #23262f;
+      --code-tint: #22252d;
+    }
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--surface);
+    color: var(--ink);
+    font-family: -apple-system, "Segoe UI", system-ui, "Helvetica Neue", Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .mono {
+    font-family: ui-monospace, "SF Mono", "Cascadia Code", Menlo, Consolas, monospace;
+  }
+
+  .page {
+    max-width: 840px;
+    margin: 0 auto;
+    padding: 56px 20px 96px;
+  }
+
+  header.top {
+    margin-bottom: 40px;
+  }
+  .eyebrow {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin: 0 0 10px;
+  }
+  h1 {
+    font-size: 30px;
+    line-height: 1.15;
+    letter-spacing: -0.01em;
+    margin: 0 0 12px;
+    text-wrap: balance;
+  }
+  .lede {
+    font-size: 15.5px;
+    line-height: 1.6;
+    color: var(--sub);
+    max-width: 62ch;
+    margin: 0;
+  }
+  .lede .mono { color: var(--ink); font-size: 0.93em; }
+
+  /* ---- legend ---- */
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 14px;
+    margin-top: 22px;
+    padding-top: 18px;
+    border-top: 1px solid var(--border);
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 12.5px;
+    color: var(--sub);
+  }
+  .dot { width: 9px; height: 9px; border-radius: 2px; flex: none; }
+
+  /* ---- flow spine ---- */
+  .spine {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px 20px;
+    box-shadow: 0 1px 2px rgba(20, 22, 30, 0.04);
+  }
+  .card.entry { text-align: center; }
+  .card-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 6px;
+  }
+  .card-title {
+    font-size: 16.5px;
+    font-weight: 700;
+    letter-spacing: -0.005em;
+  }
+  .card-ref {
+    font-size: 11.5px;
+    color: var(--sub);
+  }
+  .chips { display: flex; gap: 6px; flex-wrap: wrap; margin: 8px 0 2px; }
+  .chip {
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    padding: 3px 8px;
+    border-radius: 100px;
+    line-height: 1.5;
+  }
+  .chip.llm { color: var(--info); background: var(--info-tint); }
+  .chip.gate { color: var(--gate); background: var(--gate-tint); }
+  .chip.mock { color: var(--mock-ink); background: var(--mock-tint); border: 1px dashed var(--mock-ink); }
+  .chip.hitl { color: var(--accent); background: var(--accent-tint); }
+  .chip.entry { color: var(--sub); background: var(--code-tint); }
+
+  .desc { font-size: 13.5px; line-height: 1.55; color: var(--ink); margin: 8px 0 0; }
+  .desc + .desc { margin-top: 8px; }
+  .desc b { font-weight: 650; }
+  .desc code, .desc .mono { font-size: 0.92em; background: var(--code-tint); padding: 1px 5px; border-radius: 4px; }
+
+  .sub-rule {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px dashed var(--border);
+  }
+  .sub-rule-label {
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--sub);
+    margin-bottom: 5px;
+  }
+  ul.gate-list { margin: 4px 0 0; padding-left: 18px; font-size: 13px; line-height: 1.6; }
+  ul.gate-list li { margin-bottom: 2px; }
+  ul.gate-list .mono { background: none; padding: 0; font-size: 0.95em; }
+
+  .infra-row {
+    display: flex; gap: 6px; flex-wrap: wrap; margin-top: 12px;
+  }
+  .infra {
+    font-size: 11px;
+    color: var(--sub);
+    background: var(--code-tint);
+    border: 1px solid var(--border);
+    padding: 3px 9px;
+    border-radius: 6px;
+  }
+  .infra .mono { background: none; padding: 0; }
+
+  .side-badge {
+    position: absolute;
+    top: 14px;
+    right: 16px;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--accent);
+    background: var(--accent-tint);
+    padding: 3px 9px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .card.relative { position: relative; }
+
+  /* ---- connectors ---- */
+  .arrow {
+    width: 100%;
+    height: 34px;
+    display: flex;
+    justify-content: center;
+  }
+  .arrow svg { color: var(--sub); }
+  .arrow-label {
+    text-align: center;
+    font-size: 11.5px;
+    color: var(--sub);
+    padding: 4px 0 2px;
+  }
+  .arrow-label .mono { font-size: 0.95em; }
+
+  .branch-wrap { padding: 0; }
+  .branch-bar {
+    position: relative;
+    height: 30px;
+  }
+  .branch-bar::before {
+    content: "";
+    position: absolute;
+    left: 25%;
+    right: 25%;
+    top: 0;
+    border-top: 1.5px solid var(--border);
+  }
+  .branch-bar .stem {
+    position: absolute;
+    top: -1px;
+    width: 1.5px;
+    height: 16px;
+    background: var(--border);
+  }
+  .branch-bar .stem.center { left: 50%; transform: translateX(-50%); top: -16px; }
+  .branch-bar .stem.l { left: 25%; transform: translateX(-50%); top: 0; height: 30px; }
+  .branch-bar .stem.r { left: 75%; transform: translateX(-50%); top: 0; height: 30px; }
+  .branch-bar .arrowhead {
+    position: absolute;
+    top: 26px;
+    width: 0; height: 0;
+    border-left: 4px solid transparent;
+    border-right: 4px solid transparent;
+    border-top: 5px solid var(--border);
+  }
+  .branch-bar .arrowhead.l { left: 25%; transform: translateX(-50%); }
+  .branch-bar .arrowhead.r { left: 75%; transform: translateX(-50%); }
+
+  .cols {
+    display: flex;
+    gap: 20px;
+  }
+  .cols > div { flex: 1 1 0; }
+
+  .join-bar {
+    position: relative;
+    height: 30px;
+  }
+  .join-bar::before {
+    content: "";
+    position: absolute;
+    left: 25%;
+    right: 25%;
+    bottom: 14px;
+    border-top: 1.5px solid var(--border);
+  }
+  .join-bar .stem { position: absolute; width: 1.5px; background: var(--border); }
+  .join-bar .stem.l { left: 25%; transform: translateX(-50%); top: 0; height: 16px; }
+  .join-bar .stem.r { left: 75%; transform: translateX(-50%); top: 0; height: 16px; }
+  .join-bar .stem.center { left: 50%; transform: translateX(-50%); top: 14px; height: 16px; }
+  .join-bar .arrowhead {
+    position: absolute;
+    left: 50%; transform: translateX(-50%);
+    bottom: -1px;
+    width: 0; height: 0;
+    border-left: 4px solid transparent;
+    border-right: 4px solid transparent;
+    border-top: 5px solid var(--border);
+  }
+
+  .pill {
+    align-self: center;
+    margin: 4px auto;
+    font-size: 12px;
+    font-weight: 650;
+    color: var(--sub);
+    background: var(--code-tint);
+    border: 1px solid var(--border);
+    padding: 5px 14px;
+    border-radius: 100px;
+    text-align: center;
+  }
+  .pill-note {
+    text-align: center;
+    font-size: 11px;
+    color: var(--sub);
+    max-width: 46ch;
+    margin: 4px auto 0;
+    line-height: 1.5;
+  }
+
+  .decision-cols {
+    display: flex;
+    gap: 20px;
+    align-items: flex-start;
+  }
+  .decision-cols .true-path { flex: 1.4; }
+  .decision-cols .false-path {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding-top: 6px;
+  }
+  .false-stub {
+    border: 1px dashed var(--border);
+    border-radius: 8px;
+    padding: 10px 12px;
+    font-size: 11.5px;
+    color: var(--sub);
+    text-align: center;
+    line-height: 1.5;
+    background: var(--code-tint);
+  }
+  .false-stub b { color: var(--gate); }
+  .true-tag, .false-tag {
+    font-size: 10.5px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    text-align: center;
+    margin-bottom: 6px;
+  }
+  .true-tag { color: var(--accent); }
+  .false-tag { color: var(--gate); }
+
+  .loop-badge {
+    position: absolute;
+    bottom: -13px;
+    right: 20px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 100px;
+    padding: 4px 10px 4px 8px;
+    font-size: 11px;
+    color: var(--sub);
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .loop-badge svg { flex: none; }
+
+  footer.notes {
+    margin-top: 44px;
+    padding-top: 22px;
+    border-top: 1px solid var(--border);
+  }
+  .notes h2 {
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--sub);
+    margin: 0 0 12px;
+  }
+  .notes-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 14px 24px;
+  }
+  .note-item { font-size: 13px; line-height: 1.6; }
+  .note-item b { display: block; font-size: 12.5px; margin-bottom: 2px; }
+  .principle {
+    margin-top: 22px;
+    font-size: 13.5px;
+    line-height: 1.6;
+    color: var(--sub);
+    border-left: 2px solid var(--accent);
+    padding-left: 14px;
+  }
+  .principle b { color: var(--ink); }
+
+  @media (max-width: 620px) {
+    .cols, .decision-cols { flex-direction: column; }
+    .notes-grid { grid-template-columns: 1fr; }
+    .branch-bar::before, .join-bar::before { left: 10%; right: 10%; }
+    .branch-bar .stem.l, .branch-bar .arrowhead.l { left: 10%; }
+    .branch-bar .stem.r, .branch-bar .arrowhead.r { left: 90%; }
+    .join-bar::before { left: 10%; right: 10%; }
+    .join-bar .stem.l { left: 10%; }
+    .join-bar .stem.r { left: 90%; }
+  }
+</style>
+
+<div class="page">
+
+  <header class="top">
+    <p class="eyebrow">core/graph.py — LangGraph orchestration</p>
+    <h1>AgenticPA backend workflow</h1>
+    <p class="lede">
+      One <span class="mono">StateGraph(AgenticPAState)</span>, compiled once per process with a
+      <span class="mono">PostgresSaver</span> checkpointer keyed by <span class="mono">thread_id=case_id</span>.
+      Intake fans out to Cost/RAG based on a query-classification hint, joins at Alternative, and
+      Peer-Review's deterministic hard gates — never an LLM — decide whether the graph is allowed
+      to reach Summarizer directly, or must stop at a real <span class="mono">interrupt()</span>.
+    </p>
+    <div class="legend">
+      <span class="legend-item"><span class="dot" style="background:var(--info)"></span>LLM call (translation/reasoning only)</span>
+      <span class="legend-item"><span class="dot" style="background:var(--gate)"></span>deterministic hard gate</span>
+      <span class="legend-item"><span class="dot" style="background:var(--mock-ink)"></span>DEMO-MOCKED</span>
+      <span class="legend-item"><span class="dot" style="background:var(--accent)"></span>human-in-the-loop</span>
+    </div>
+  </header>
+
+  <div class="spine">
+
+    <!-- ENTRY -->
+    <div class="card entry">
+      <div class="chips" style="justify-content:center"><span class="chip entry">Patient Portal</span></div>
+      <div class="card-title">PDF upload + free-text service request</div>
+      <p class="desc">Synthetic patient record (Faker) auto-fills name / DOB / member ID / zip.</p>
+    </div>
+
+    <div class="arrow-label"><span class="mono">POST /api/v1/upload</span></div>
+    <div class="arrow"><svg width="16" height="30" viewBox="0 0 16 30" fill="none"><path d="M8 0V22M8 22L2 16M8 22L14 16" stroke="currentColor" stroke-width="1.6"/></svg></div>
+
+    <div class="card">
+      <div class="card-head">
+        <span class="card-title">API layer</span>
+        <span class="card-ref mono">api/routes.py → core/case_runner.py</span>
+      </div>
+      <p class="desc"><span class="mono">case_runner.start_case()</span> builds the initial <span class="mono">AgenticPAState</span> and calls <span class="mono">graph.invoke(state, config={"thread_id": case_id})</span> — idempotent: re-invoking the same case_id resumes the same LangGraph thread instead of double-processing.</p>
+    </div>
+
+    <div class="arrow"><svg width="16" height="30" viewBox="0 0 16 30" fill="none"><path d="M8 0V22M8 22L2 16M8 22L14 16" stroke="currentColor" stroke-width="1.6"/></svg></div>
+
+    <!-- INTAKE -->
+    <div class="card">
+      <div class="card-head">
+        <span class="card-title mono">intake</span>
+        <span class="card-ref mono">agents/intake_agent.py</span>
+      </div>
+      <div class="chips"><span class="chip llm">LLM extraction</span></div>
+      <p class="desc">pdfplumber text + LLM call → <span class="mono">ClinicalPayload</span> (CPT / ICD-10 codes, billed amount, patient zip, <b>extraction_confidence</b>). Same LLM call classifies the patient's query into <span class="mono">routing.relevant_agents ⊆ {cost, rag, alternative}</span> — a routing <i>hint</i>, never a gate: any classification failure fails safe to <b>ALL_AGENTS</b>.</p>
+      <p class="desc">Feedback loop: vector-searches <span class="mono">feedback_corrections</span> by <span class="mono">(icd10_family, cpt_family)</span> and injects the top 3 reviewer corrections as few-shot examples.</p>
+      <div class="infra-row">
+        <span class="infra">LLM_PROVIDER <span class="mono">gemini · openai · bedrock_claude</span></span>
+        <span class="infra">Postgres <span class="mono">feedback_corrections</span></span>
+      </div>
+    </div>
+
+    <!-- BRANCH -->
+    <div class="pill">route_after_intake(state) → fan-out</div>
+    <p class="pill-note">Only runs the checks Intake judged relevant to the query. Skips work, never a safety check — worst case on a bad classification is running everything.</p>
+    <div class="branch-bar">
+      <span class="stem l"></span><span class="stem r"></span>
+      <span class="arrowhead l"></span><span class="arrowhead r"></span>
+    </div>
+
+    <div class="cols">
+      <div class="card">
+        <div class="card-head">
+          <span class="card-title mono">cost</span>
+          <span class="card-ref mono">agents/cost_agent.py</span>
+        </div>
+        <div class="chips"><span class="chip gate">deterministic</span></div>
+        <p class="desc">CMS benchmark rate (RVU × GPCI × Conversion Factor, Redis-cached) for billed CPT + zip. <b>is_overcharge = variance &gt; 20%</b>. No rate resolvable → <span class="mono">cms_benchmark_rate=None</span>.</p>
+        <div class="infra-row"><span class="infra">Redis <span class="mono">CMS rate cache</span></span></div>
+      </div>
+      <div class="card">
+        <div class="card-head">
+          <span class="card-title mono">rag</span>
+          <span class="card-ref mono">agents/rag_agent.py</span>
+        </div>
+        <div class="chips"><span class="chip gate">deterministic</span></div>
+        <p class="desc">Hybrid dense+sparse search over ingested AARP EOC/SOB policy chunks. <b>policy_ambiguous</b> when top cosine score &lt; <span class="mono">0.70</span>, or no hits.</p>
+        <div class="infra-row"><span class="infra">Qdrant <span class="mono">policy vectors</span></span></div>
+      </div>
+    </div>
+
+    <!-- JOIN -->
+    <div class="join-bar">
+      <span class="stem l"></span><span class="stem r"></span><span class="stem center"></span>
+      <span class="arrowhead"></span>
+    </div>
+    <p class="pill-note">Cost + RAG run in the same LangGraph superstep — a Pydantic state channel accepts one write per step, so both agents' audit-trace entries fold in at the join node below.</p>
+
+    <div class="card">
+      <div class="card-head">
+        <span class="card-title mono">alternative</span>
+        <span class="card-ref mono">agents/alternative_agent.py</span>
+      </div>
+      <div class="chips"><span class="chip mock">DEMO-MOCKED</span></div>
+      <p class="desc">Join node + hardcoded ICD-10/CPT → conservative-first mapping (e.g. total knee arthroplasty → physical therapy + injection first), with a net professional-fee savings figure.</p>
+    </div>
+
+    <div class="arrow"><svg width="16" height="30" viewBox="0 0 16 30" fill="none"><path d="M8 0V22M8 22L2 16M8 22L14 16" stroke="currentColor" stroke-width="1.6"/></svg></div>
+
+    <!-- PEER REVIEW -->
+    <div class="card">
+      <div class="card-head">
+        <span class="card-title mono">peer_review</span>
+        <span class="card-ref mono">agents/peer_review_agent.py</span>
+      </div>
+      <div class="sub-rule">
+        <div class="sub-rule-label">Layer 1 — evaluate_hard_gates() <span class="chip gate" style="vertical-align:middle">deterministic</span></div>
+        <ul class="gate-list">
+          <li><span class="mono">LOW_CONFIDENCE_EXTRACTION</span> — confidence missing or &lt; <b>0.85</b></li>
+          <li><span class="mono">FINANCIAL_EXCEPTION</span> — Cost's <span class="mono">is_overcharge = True</span></li>
+          <li><span class="mono">RATE_UNAVAILABLE</span> — Cost ran but no CMS rate resolved</li>
+          <li><span class="mono">POLICY_AMBIGUOUS</span> — RAG's top match &lt; <b>0.70</b></li>
+        </ul>
+        <p class="desc">Sets <span class="mono">needs_human_review</span> — before the LLM is ever called.</p>
+      </div>
+      <div class="sub-rule">
+        <div class="sub-rule-label">Layer 2 — generate_rationale() <span class="chip llm" style="vertical-align:middle">LLM</span></div>
+        <p class="desc">Writes the Reviewer's Rationale Panel text, citing exact figures/citations, and may name <i>additional</i> soft escalation reasons. Can only <b>add</b> reasons — never suppresses a fired hard gate. If the call fails or times out, hard gates still stand (fail-safe, not fail-open).</p>
+      </div>
+    </div>
+
+    <!-- DECISION -->
+    <div class="pill">route_after_peer_review(state)</div>
+    <div class="decision-cols">
+      <div class="true-path">
+        <div class="true-tag">needs_human_review = True</div>
+        <div class="arrow"><svg width="16" height="26" viewBox="0 0 16 26" fill="none"><path d="M8 0V18M8 18L2 12M8 18L14 12" stroke="var(--accent)" stroke-width="1.6"/></svg></div>
+      </div>
+      <div class="false-path">
+        <div class="false-tag">False</div>
+        <div class="false-stub"><b>skip straight to Summarizer</b> — human_review node never runs</div>
+      </div>
+    </div>
+
+    <!-- HUMAN REVIEW -->
+    <div class="card relative">
+      <span class="side-badge">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none"><path d="M4 4v5h5M20 20v-5h-5M4.6 15A8 8 0 0019 9M19.4 9A8 8 0 015 15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        interrupt()
+      </span>
+      <div class="card-head">
+        <span class="card-title mono">human_review</span>
+        <span class="card-ref mono">langgraph.types.interrupt</span>
+      </div>
+      <div class="chips"><span class="chip hitl">human-in-the-loop</span></div>
+      <p class="desc">A <b>real</b> graph-level interrupt, not a UI-faked pause: the graph literally cannot reach <span class="mono">summarizer</span> while <span class="mono">needs_human_review=True</span>. State is checkpointed to Postgres (thread_id=case_id) — survives across separate HTTP requests and process restarts.</p>
+      <p class="desc">Reviewer actions: <b>Approve as Is</b> · <b>Modify &amp; Approve</b> · <b>Request Clarification</b> · <b>Override to Deny</b> (mandatory justification) → <span class="mono">POST /review/{case_id}/adjudicate</span> → <span class="mono">resume_case()</span> → <span class="mono">graph.invoke(Command(resume=payload))</span>.</p>
+      <div class="loop-badge">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M4 4v5h5M20 20v-5h-5M4.6 15A8 8 0 0019 9M19.4 9A8 8 0 015 15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        clarify / provider_responded → re-interrupts at the same point
+      </div>
+    </div>
+
+    <div class="arrow-label" style="margin-top:8px"><span class="mono">final_status set</span> (Approved / Denied)</div>
+    <div class="arrow"><svg width="16" height="30" viewBox="0 0 16 30" fill="none"><path d="M8 0V22M8 22L2 16M8 22L14 16" stroke="currentColor" stroke-width="1.6"/></svg></div>
+
+    <!-- SUMMARIZER -->
+    <div class="card">
+      <div class="card-head">
+        <span class="card-title mono">summarizer</span>
+        <span class="card-ref mono">agents/summarizer_agent.py</span>
+      </div>
+      <div class="chips"><span class="chip llm">LLM translation</span></div>
+      <p class="desc">Dual output: plain-English decision letter (Flesch readability–scored, for the Patient Portal) + a FHIR stub (for audit). <span class="mono">used_fallback</span> flags a templated letter if the LLM call fails or times out — never blocks graph completion.</p>
+    </div>
+
+    <div class="arrow"><svg width="16" height="30" viewBox="0 0 16 30" fill="none"><path d="M8 0V22M8 22L2 16M8 22L14 16" stroke="currentColor" stroke-width="1.6"/></svg></div>
+
+    <div class="card entry">
+      <div class="chips" style="justify-content:center"><span class="chip entry">END</span></div>
+      <div class="card-title">Persisted &amp; served back out</div>
+      <p class="desc"><span class="mono">case_runner._persist()</span> upserts the <span class="mono">cases</span> row and appends new <span class="mono">agent_trace</span> entries to insert-only <span class="mono">audit_logs</span> — the tables <span class="mono">/status</span>, <span class="mono">/review</span>, and <span class="mono">/admin/metrics</span> read from directly.</p>
+    </div>
+
+  </div>
+
+  <footer class="notes">
+    <h2>Reading this diagram</h2>
+    <div class="notes-grid">
+      <div class="note-item">
+        <b>Every LLM call has a fallback</b>
+        Extraction confidence unknown → treated as low, not high. Peer-Review rationale fails → hard gates still stand. Summarizer fails → templated letter. Never silent auto-approval.
+      </div>
+      <div class="note-item">
+        <b>Hard gates are asymmetric</b>
+        The LLM rationale layer in Peer-Review can only escalate (add reasons), never downgrade a fired flag back to auto-approve.
+      </div>
+      <div class="note-item">
+        <b>Checkpointer ≠ audit log</b>
+        PostgresSaver only stores enough to resume an interrupt. <span class="mono">case_runner.py</span> separately mirrors state into queryable <span class="mono">cases</span> / <span class="mono">audit_logs</span> tables for the API/Admin dashboard.
+      </div>
+      <div class="note-item">
+        <b>Routing hints vs. hard gates</b>
+        <span class="mono">relevant_agents</span> only decides which checks <i>run</i>; it never decides whether a case is safe to auto-approve — that's Peer-Review's job alone.
+      </div>
+    </div>
+    <p class="principle"><b>Why agents, not one prompt:</b> the deterministic hard gates (20% cost variance, 0.70 similarity, 85% confidence) are what a single LLM call can't guarantee — consistent, auditable, non-hallucinated thresholds. The LLM layers add reasoning and plain-English translation on top of that guarantee; they never replace it.</p>
+  </footer>
+
+</div>

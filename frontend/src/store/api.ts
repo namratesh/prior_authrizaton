@@ -23,6 +23,19 @@ export interface StatusResponse {
   is_expedite: boolean;
 }
 
+export interface ExplainabilityFactor {
+  flag: string;
+  severity: number;
+  share: number;
+  detail: string;
+  counterfactual: string;
+}
+
+export interface Explainability {
+  factors: ExplainabilityFactor[];
+  primary_driver: string | null;
+}
+
 export interface ReviewResponse {
   case_id: string;
   case_number: string;
@@ -37,6 +50,7 @@ export interface ReviewResponse {
   is_expedite: boolean;
   decision_letter: string | null;
   agent_trace: Record<string, any>[];
+  explainability: Explainability;
 }
 
 export interface FairnessCohort {
@@ -47,6 +61,10 @@ export interface FairnessCohort {
   ci_low: number;
   ci_high: number;
   significant_disparity: boolean;
+  posterior_mean: number;
+  credible_low: number;
+  credible_high: number;
+  p_worse_than_overall: number | null;
 }
 
 export interface Segment {

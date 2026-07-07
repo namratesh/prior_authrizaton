@@ -196,7 +196,26 @@ const FAIRNESS_DIMENSIONS: { key: AdminMetrics["fairness_cohorts"][number]["dime
   { key: "service", label: "Service" },
 ];
 
-function FairnessTooltip({ active, payload }: { active?: boolean; payload?: { payload: AdminMetrics["fairness_cohorts"][number] }[] }) {
+const FAIRNESS_LENSES: { key: "frequentist" | "bayesian"; label: string }[] = [
+  { key: "frequentist", label: "Wilson CI" },
+  { key: "bayesian", label: "Bayesian" },
+];
+
+function isFlagged(c: AdminMetrics["fairness_cohorts"][number], lens: "frequentist" | "bayesian"): boolean {
+  return lens === "frequentist"
+    ? c.significant_disparity
+    : c.p_worse_than_overall != null && (c.p_worse_than_overall >= 0.9 || c.p_worse_than_overall <= 0.1);
+}
+
+function FairnessTooltip({
+  active,
+  payload,
+  lens,
+}: {
+  active?: boolean;
+  payload?: { payload: AdminMetrics["fairness_cohorts"][number] }[];
+  lens: "frequentist" | "bayesian";
+}) {
   if (!active || !payload?.length) return null;
   const c = payload[0].payload;
   return (
@@ -206,11 +225,34 @@ function FairnessTooltip({ active, payload }: { active?: boolean; payload?: { pa
         Approval rate: <span className="font-medium text-foreground">{(c.approval_rate * 100).toFixed(0)}%</span>{" "}
         (n={c.total})
       </p>
-      <p className="text-muted-foreground">
-        95% CI: {(c.ci_low * 100).toFixed(0)}%–{(c.ci_high * 100).toFixed(0)}%
-      </p>
-      {c.significant_disparity && (
-        <p className="mt-1 font-medium text-radiant">Differs from overall rate beyond sampling noise</p>
+      {lens === "frequentist" ? (
+        <>
+          <p className="text-muted-foreground">
+            95% Wilson CI: {(c.ci_low * 100).toFixed(0)}%–{(c.ci_high * 100).toFixed(0)}%
+          </p>
+          {c.significant_disparity && (
+            <p className="mt-1 font-medium text-radiant">Differs from overall rate beyond sampling noise</p>
+          )}
+        </>
+      ) : (
+        <>
+          <p className="text-muted-foreground">
+            Posterior mean: <span className="font-medium text-foreground">{(c.posterior_mean * 100).toFixed(0)}%</span>
+          </p>
+          <p className="text-muted-foreground">
+            95% credible interval: {(c.credible_low * 100).toFixed(0)}%–{(c.credible_high * 100).toFixed(0)}%
+          </p>
+          {c.p_worse_than_overall != null && (
+            <p className="text-muted-foreground">
+              P(worse than overall | data): <span className="font-medium text-foreground">{(c.p_worse_than_overall * 100).toFixed(0)}%</span>
+            </p>
+          )}
+          {isFlagged(c, "bayesian") && (
+            <p className="mt-1 font-medium text-radiant">
+              {c.p_worse_than_overall! >= 0.9 ? "Likely worse than overall, given the data" : "Likely better than overall, given the data"}
+            </p>
+          )}
+        </>
       )}
     </div>
   );
@@ -224,6 +266,7 @@ function BiasFairnessCard({
   finalizedTotal: number;
 }) {
   const [dimension, setDimension] = useState<(typeof FAIRNESS_DIMENSIONS)[number]["key"]>("demographics");
+  const [lens, setLens] = useState<"frequentist" | "bayesian">("frequentist");
 
   const filtered = data.filter((c) =>
     dimension === "demographics" ? c.dimension === "age" || c.dimension === "region" : c.dimension === dimension
@@ -235,7 +278,7 @@ function BiasFairnessCard({
   return (
     <Card>
       <CardContent className="pt-6">
-        <div className="mb-1 flex items-center justify-between gap-2">
+        <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
           <div className="flex items-center gap-2 text-muted-foreground">
             <Scale size={16} className="text-navy-600" />
             <h3 className="text-sm font-medium">Bias &amp; Fairness Gauge</h3>
@@ -257,11 +300,39 @@ function BiasFairnessCard({
             ))}
           </div>
         </div>
+        <div className="mb-3 flex items-center gap-1">
+          <span className="text-[11px] text-muted-foreground">Method:</span>
+          {FAIRNESS_LENSES.map((l) => (
+            <button
+              key={l.key}
+              onClick={() => setLens(l.key)}
+              className={cn(
+                "rounded-full border px-2 py-0.5 text-[11px] transition-colors",
+                lens === l.key
+                  ? "border-teal-600 bg-teal-600 text-white"
+                  : "border-border text-muted-foreground hover:bg-muted"
+              )}
+            >
+              {l.label}
+            </button>
+          ))}
+        </div>
         <p className="mb-3 flex items-start gap-1 text-[11px] leading-snug text-muted-foreground">
           <Info size={12} className="mt-0.5 shrink-0" />
-          Approval rate by cohort, computed from each case's own data. Cohorts with fewer than 3
-          finalized cases are omitted. Bars in red have a 95% confidence interval that excludes the
-          overall approval rate — a disparity unlikely to be sampling noise.
+          {lens === "frequentist" ? (
+            <>
+              Approval rate by cohort, computed from each case's own data. Cohorts with fewer than 3
+              finalized cases are omitted. Bars in red have a 95% Wilson confidence interval that excludes
+              the overall approval rate — a disparity unlikely to be sampling noise.
+            </>
+          ) : (
+            <>
+              A Bayesian Beta-Binomial posterior per cohort, using a weakly-informative prior centered on
+              the overall approval rate. Bars in red have &ge;90% posterior probability of being worse (or
+              &le;10%, better) than overall, given the data observed so far — a direct probability
+              statement rather than a significance test.
+            </>
+          )}
         </p>
         {filtered.length === 0 ? (
           <EmptyState
@@ -283,13 +354,13 @@ function BiasFairnessCard({
               <CartesianGrid strokeDasharray="3 3" stroke={CHART_COLORS.grid} vertical={false} />
               <XAxis dataKey="cohort" tick={{ fontSize: 10, fill: CHART_COLORS.axis }} tickLine={false} axisLine={false} />
               <YAxis domain={[0, 1]} tick={{ fontSize: 10, fill: CHART_COLORS.axis }} tickLine={false} axisLine={false} />
-              <Tooltip cursor={{ fill: "rgba(38,70,131,0.06)" }} content={<FairnessTooltip />} />
+              <Tooltip cursor={{ fill: "rgba(38,70,131,0.06)" }} content={<FairnessTooltip lens={lens} />} />
               {overallRate != null && (
                 <ReferenceLine y={overallRate} stroke={CHART_COLORS.axis} strokeDasharray="4 4" />
               )}
-              <Bar dataKey="approval_rate" radius={[6, 6, 0, 0]}>
+              <Bar dataKey={lens === "frequentist" ? "approval_rate" : "posterior_mean"} radius={[6, 6, 0, 0]}>
                 {filtered.map((c, i) => (
-                  <Cell key={i} fill={c.significant_disparity ? "#dc2626" : "url(#biasFill)"} />
+                  <Cell key={i} fill={isFlagged(c, lens) ? "#dc2626" : "url(#biasFill)"} />
                 ))}
               </Bar>
             </BarChart>

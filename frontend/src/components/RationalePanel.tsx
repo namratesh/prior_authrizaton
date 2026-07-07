@@ -1,6 +1,14 @@
-import { AlertTriangle, Zap, FileSearch, Calculator, Route, Repeat, ListChecks } from "lucide-react";
+import { AlertTriangle, Zap, FileSearch, Calculator, Route, Repeat, ListChecks, GitBranch } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
+import type { Explainability } from "@/store/api";
+
+const FLAG_LABELS: Record<string, string> = {
+  LOW_CONFIDENCE_EXTRACTION: "Low Extraction Confidence",
+  FINANCIAL_EXCEPTION: "Financial Exception",
+  RATE_UNAVAILABLE: "Rate Unavailable",
+  POLICY_AMBIGUOUS: "Policy Ambiguous",
+};
 
 const AGENT_LABELS: Record<string, string> = {
   cost: "Cost Check",
@@ -27,6 +35,7 @@ export default function RationalePanel({
   relevantAgents,
   queryClassificationReason,
   providerResponse,
+  explainability,
 }: {
   needsHumanReview: boolean;
   interruptReason: string | null;
@@ -37,6 +46,7 @@ export default function RationalePanel({
   relevantAgents?: string[];
   queryClassificationReason?: string | null;
   providerResponse?: string | null;
+  explainability?: Explainability;
 }) {
   return (
     <div className="flex h-full flex-col overflow-hidden rounded-xl border border-border bg-card shadow-soft">
@@ -125,6 +135,42 @@ export default function RationalePanel({
             </TooltipContent>
           </Tooltip>
         </div>
+
+        {explainability && explainability.factors.length > 0 && (
+          <div>
+            <SectionTitle icon={GitBranch}>Why This Decision (Explainability)</SectionTitle>
+            <ul className="space-y-2">
+              {explainability.factors.map((f) => (
+                <li
+                  key={f.flag}
+                  className={cn(
+                    "rounded-lg border p-2 text-xs",
+                    f.flag === explainability.primary_driver
+                      ? "border-navy-300 bg-navy-50"
+                      : "border-border bg-muted/40"
+                  )}
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="font-medium">{FLAG_LABELS[f.flag] ?? f.flag}</p>
+                    <span className="shrink-0 text-[11px] text-muted-foreground">
+                      {Math.round(f.share * 100)}% of decision
+                    </span>
+                  </div>
+                  <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-border">
+                    <div
+                      className="h-full rounded-full bg-navy-600"
+                      style={{ width: `${Math.round(f.severity * 100)}%` }}
+                    />
+                  </div>
+                  <p className="mt-1.5 text-muted-foreground">{f.detail}</p>
+                  <p className="mt-1 text-teal-700">
+                    Counterfactual: {f.counterfactual}
+                  </p>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
 
         {relevantAgents && (
           <div>

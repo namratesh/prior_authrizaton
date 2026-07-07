@@ -16,6 +16,7 @@ from sqlalchemy.orm import Session
 
 from app.core.auth import require_api_key
 from app.core.case_runner import resume_case, start_case
+from app.core.explainability import explain_case
 from app.core.fairness import compute_fairness_cohorts
 from app.core.feedback import record_correction
 from app.core.rate_limit import limiter
@@ -190,6 +191,18 @@ def get_review(request: Request, case_id: str, db: Session = Depends(get_db)):
         for r in audit_rows
     ]
     summarizer_entry = next((t for t in reversed(trace) if t["agent"] == "summarizer"), None)
+    peer_review_entry = next(
+        (t for t in reversed(trace) if t["agent"] == "peer_review_auditor"), None
+    )
+    settings = get_settings(db)
+    explainability = explain_case(
+        clinical=row["clinical_payload"] or {},
+        financial=row["financial_payload"] or {},
+        policy=row["policy_payload"] or {},
+        hard_gate_flags=(peer_review_entry or {}).get("hard_gate_flags") or [],
+        confidence_threshold=settings.confidence_threshold,
+        overcharge_threshold_percent=settings.overcharge_threshold_percent,
+    )
 
     return {
         "case_id": case_id,
@@ -204,10 +217,11 @@ def get_review(request: Request, case_id: str, db: Session = Depends(get_db)):
         "routing": row["routing_payload"],
         "is_expedite": is_expedite(
             _parse_dt((row["routing_payload"] or {}).get("sla_deadline")),
-            expedite_hours=get_settings(db).expedite_hours,
+            expedite_hours=settings.expedite_hours,
         ),
         "decision_letter": summarizer_entry.get("decision_letter") if summarizer_entry else None,
         "agent_trace": trace,
+        "explainability": explainability,
     }
 
 

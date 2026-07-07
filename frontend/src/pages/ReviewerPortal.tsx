@@ -300,6 +300,7 @@ export default function ReviewerPortal() {
             relevantAgents={review.routing?.relevant_agents}
             queryClassificationReason={review.routing?.query_classification_reason}
             providerResponse={review.routing?.provider_response}
+            explainability={review.explainability}
           />
         </div>
       </div>

@@ -160,6 +160,50 @@ Note "West," "Age 85+" are absent above — not because they're excluded by
 design, but because (in this hypothetical) fewer than 3 finalized cases
 landed in them.
 
+### 3.4 The Bayesian view — `_beta_binomial_posterior`
+
+Every surviving cohort also carries a real Bayesian Beta-Binomial posterior,
+computed alongside (not instead of) the Wilson interval above:
+
+- **Prior:** `Beta(alpha_0, beta_0)` with `alpha_0 + beta_0 = PRIOR_STRENGTH
+  = 4` pseudo-observations, centered on the *overall* approval rate across
+  all finalized cases (`alpha_0 = 4 * overall_rate`, `beta_0 = 4 * (1 -
+  overall_rate)`). A cohort with no informative overall rate (empty
+  dataset) falls back to an uninformative `Beta(1, 1)`.
+- **Posterior:** by Beta-Binomial conjugacy, `Beta(alpha_0 + successes,
+  beta_0 + failures)` — no sampling, no external stats library, exact
+  closed-form update.
+- **Reported per cohort:**
+  - `posterior_mean` — the posterior's mean, pulled toward the overall rate
+    at small n (e.g. a 3-case, 3-approval cohort reports a mean below 100%,
+    unlike the raw `approval_rate`).
+  - `credible_low` / `credible_high` — a 95% equal-tailed credible interval,
+    computed by inverting the Beta CDF via bisection (`_beta_quantile`).
+  - `p_worse_than_overall` — `P(true cohort approval rate < overall
+    approval rate | data)`, the regularized incomplete beta function
+    evaluated at the overall rate (`_betainc`). This is a direct,
+    interpretable probability, not a p-value.
+
+`_betainc` (regularized incomplete beta function, via Lentz's continued-
+fraction algorithm) and `_beta_quantile` (bisection on `_betainc`) are
+hand-rolled in pure Python — the same algorithm `scipy.special.betainc`
+uses internally, kept dependency-free since this repo doesn't otherwise
+need scipy/numpy.
+
+**Frequentist vs. Bayesian, read side by side:** `significant_disparity`
+(Wilson) answers "is this gap larger than sampling noise could plausibly
+explain, under a null hypothesis of no difference." `p_worse_than_overall`
+(Bayesian) answers "given everything observed, how likely is it that this
+cohort's true rate is actually below average." They usually agree at
+moderate-to-large n and can diverge at very small n, where the Bayesian
+posterior is pulled toward the prior while the Wilson interval is not —
+that divergence is itself informative, which is why both are surfaced
+rather than picking one.
+
+The Admin Portal's `BiasFairnessCard` exposes a "Method" toggle
+(`frequentist` / `bayesian`) so a reviewer can switch lenses on the same
+underlying cohort data instead of the two views living in separate places.
+
 ---
 
 ## 4. How it reaches the Admin Portal
@@ -231,7 +275,8 @@ proxies to make or alter any individual adjudication decision.*
 | No protected-class data | Race, ethnicity, sex/gender, disability, income are never captured. Age and ZIP-derived region are the only available proxies. |
 | ZIP is a poor proxy for race/ethnicity | Using ZIP-code region as a demographic proxy is a widely-criticized practice in fairness literature (it can encode historical redlining patterns without being a clean substitute for any single protected attribute). Documented here explicitly so it is not overstated as more rigorous than it is. |
 | Coarse granularity | 4 age buckets and up to 4 regions is not fine-grained; a single ZIP digit spans a huge and heterogeneous population per bucket. |
-| No statistical significance testing | `approval_rate` is a raw proportion; there is no confidence interval, p-value, or multiple-comparison correction. `MIN_COHORT_SIZE = 3` is a floor against the worst noise, not a statistical guarantee of significance. |
+| No multiple-comparison correction | Both the Wilson `significant_disparity` flag and the Bayesian `p_worse_than_overall` threshold (≥90%/≤10%) are evaluated per-cohort independently; with many cohorts shown at once, some will cross either threshold by chance alone (or by prior-driven optimism at small n) even with no real disparity. `MIN_COHORT_SIZE = 3` and the weakly-informative Bayesian prior both guard against the worst small-n noise, but neither is a family-wise error correction. |
+| Bayesian prior is a modeling choice, not ground truth | `PRIOR_STRENGTH = 4` and centering on the *overall* rate are defensible defaults, not derived from data. A different prior strength shifts how fast small cohorts converge to their own data vs. the population average — this is disclosed, not hidden behind a single "the" Bayesian answer. |
 | No intersectional analysis | Age and region are computed independently, not as an age×region cross-tab — a cohort that's simultaneously old *and* Southern isn't visible as its own bucket. |
 | No feedback loop | As covered in §5, findings here don't change any decision. This is a monitoring tool, not a bias-correction system. |
 | Small MVP dataset | With only a handful of seeded Hero Cases, most cohorts will be dropped by the `MIN_COHORT_SIZE` threshold; the gauge only becomes meaningful at moderate case volume. |

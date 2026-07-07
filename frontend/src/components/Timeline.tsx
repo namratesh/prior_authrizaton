@@ -1,3 +1,4 @@
+import { useRef } from "react";
 import { Check } from "lucide-react";
 import { motion } from "framer-motion";
 import { Card } from "@/components/ui/card";
@@ -27,18 +28,29 @@ export default function Timeline({
   currentPhase,
   needsHumanReview,
   interruptReason,
+  caseStatus,
 }: {
   currentPhase: string;
   needsHumanReview: boolean;
   interruptReason: string | null;
+  caseStatus?: string | null;
 }) {
-  const activeIndex = PHASE_TO_STEP_INDEX[currentPhase] ?? 0;
+  // An unrecognized phase (e.g. a new agent phase added server-side without
+  // updating this map) should hold at the last known step, not visually
+  // regress the patient's progress bar back to "Intake".
+  const lastKnownIndex = useRef(0);
+  const resolvedIndex = PHASE_TO_STEP_INDEX[currentPhase];
+  if (resolvedIndex !== undefined) lastKnownIndex.current = resolvedIndex;
+  const activeIndex = lastKnownIndex.current;
   const complete = currentPhase === "complete";
+  const awaitingProviderResponse = caseStatus === "awaiting_provider_response";
   // Fraction of the connector track that should read as "filled".
   const fillPct = complete ? 100 : (activeIndex / (STEPS.length - 1)) * 100;
 
   const statusLabel = () => {
     if (currentPhase === "complete") return "Decision ready";
+    if (awaitingProviderResponse)
+      return "Awaiting your response — the reviewer asked a follow-up question";
     if (needsHumanReview) return "Awaiting reviewer — your case needs a closer look";
     if (currentPhase === "intake") return "Reading your request...";
     if (currentPhase === "cost" || currentPhase === "rag") return "Cost Agent reviewing...";
@@ -89,7 +101,14 @@ export default function Timeline({
           })}
         </div>
       </div>
-      <p className="mt-5 text-sm text-foreground/80">{statusLabel()}</p>
+      <p
+        className={cn(
+          "mt-5 text-sm",
+          awaitingProviderResponse ? "animate-pulse font-medium text-radiant" : "text-foreground/80"
+        )}
+      >
+        {statusLabel()}
+      </p>
       {needsHumanReview && interruptReason && (
         <p className="mt-1 text-xs text-radiant">Reason: {interruptReason}</p>
       )}

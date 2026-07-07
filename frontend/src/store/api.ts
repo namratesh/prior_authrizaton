@@ -34,19 +34,44 @@ export interface ReviewResponse {
   agent_trace: Record<string, any>[];
 }
 
+export interface FairnessCohort {
+  cohort: string;
+  total: number;
+  approval_rate: number;
+}
+
+export interface Segment {
+  key: string;
+  total: number;
+  override_rate: number | null;
+  leakage: number;
+}
+
 export interface AdminMetrics {
   leakage_prevented: number;
   accuracy_drift: { date: string; accuracy: number | null }[];
+  fairness_cohorts: FairnessCohort[];
+  fairness_finalized_total: number;
+  segments: Segment[] | null;
   cases: {
     case_id: string;
     case_number: string;
     current_phase: string;
     final_status: string | null;
     needs_human_review: boolean;
+    assigned_to: string | null;
     sla_deadline: string | null;
     requested_service_description: string | null;
     flags: string[];
+    rationale: string | null;
   }[];
+}
+
+export interface AdminSettings {
+  sla_hours: number;
+  expedite_hours: number;
+  confidence_threshold: number;
+  agents_enabled: { cost: boolean; rag: boolean; alternative: boolean };
 }
 
 async function json<T>(res: Response): Promise<T> {
@@ -92,7 +117,44 @@ export async function adjudicate(caseId: string, payload: AdjudicatePayload) {
   return json<{ case_id: string; final_status: string | null; case_status: string | null; decision_letter: string | null }>(res);
 }
 
-export async function getAdminMetrics(): Promise<AdminMetrics> {
-  const res = await fetch(`${API_URL}/api/v1/admin/metrics`);
+export async function getAdminMetrics(groupBy?: "provider" | "service" | "reviewer"): Promise<AdminMetrics> {
+  const qs = groupBy ? `?group_by=${groupBy}` : "";
+  const res = await fetch(`${API_URL}/api/v1/admin/metrics${qs}`);
   return json(res);
+}
+
+export async function getAdminSettings(): Promise<AdminSettings> {
+  const res = await fetch(`${API_URL}/api/v1/admin/settings`);
+  return json(res);
+}
+
+export async function updateAdminSettings(payload: Partial<AdminSettings>): Promise<AdminSettings> {
+  const res = await fetch(`${API_URL}/api/v1/admin/settings`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  return json(res);
+}
+
+export async function assignCase(caseId: string, reviewerId: string): Promise<{ case_id: string; assigned_to: string }> {
+  const res = await fetch(`${API_URL}/api/v1/review/${caseId}/assign`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ reviewer_id: reviewerId }),
+  });
+  return json(res);
+}
+
+export async function unassignCase(caseId: string): Promise<{ case_id: string; assigned_to: null }> {
+  const res = await fetch(`${API_URL}/api/v1/review/${caseId}/unassign`, { method: "POST" });
+  return json(res);
+}
+
+export function exportCaseAuditUrl(caseId: string): string {
+  return `${API_URL}/api/v1/review/${caseId}/audit-export`;
+}
+
+export function exportAllAuditUrl(): string {
+  return `${API_URL}/api/v1/admin/audit-export`;
 }

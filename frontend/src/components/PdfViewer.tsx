@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Document, Page, pdfjs } from "react-pdf";
 import { ChevronLeft, ChevronRight, FileText } from "lucide-react";
 import "react-pdf/dist/Page/TextLayer.css";
@@ -14,15 +14,33 @@ const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
 const PRICE_RE = /\$\s?[\d,]+(?:\.\d{2})?/;
 
-// // DEMO-REAL: react-pdf's customTextRenderer runs once per real text item in
+// Matches the billed amount regardless of whether the PDF renders it with a
+// thousands separator, a trailing ".00", or neither (e.g. 1234, 1,234, 1234.00).
+function billedAmountVariants(billedAmount?: number): string[] {
+  if (billedAmount == null || Number.isNaN(billedAmount)) return [];
+  const fixed = billedAmount.toFixed(2);
+  const withCommas = billedAmount.toLocaleString(undefined, {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+  const noDecimals = String(Math.trunc(billedAmount));
+  return Array.from(new Set([fixed, withCommas, noDecimals]));
+}
+
+// DEMO-REAL: react-pdf's customTextRenderer runs once per real text item in
 // the actual rendered PDF text layer — this isn't a canned overlay image.
-// CPT/ICD-10 highlights match against the codes Intake actually extracted
-// for this case (not a blind digit-pattern regex) so a 5-digit zip code
-// can't be mistaken for a CPT code — price still uses a regex since dollar
-// amounts aren't in a fixed extracted list.
-function makeHighlighter(cptCodes: string[], icd10Codes: string[]) {
+// CPT/ICD-10/billed-amount highlights match against values Intake actually
+// extracted for this case (not a blind digit-pattern regex) so a 5-digit zip
+// code can't be mistaken for a CPT code. Any other dollar figure (deductible,
+// copay, subtotal, etc.) is highlighted distinctly so it's never confused
+// with the billed amount being adjudicated.
+function makeHighlighter(cptCodes: string[], icd10Codes: string[], billedAmount?: number) {
+  const billedVariants = billedAmountVariants(billedAmount);
   return ({ str }: { str: string }): string => {
-    if (PRICE_RE.test(str)) return `<mark style="background:rgba(224,0,0,0.35)">${str}</mark>`;
+    if (billedVariants.some((v) => str.includes(v))) {
+      return `<mark style="background:rgba(224,0,0,0.35)">${str}</mark>`;
+    }
+    if (PRICE_RE.test(str)) return `<mark style="background:rgba(148,163,184,0.4)">${str}</mark>`;
     if (icd10Codes.some((code) => code && str.includes(code))) {
       return `<mark style="background:rgba(37,99,235,0.35)">${str}</mark>`;
     }
@@ -36,21 +54,41 @@ function makeHighlighter(cptCodes: string[], icd10Codes: string[]) {
 const LEGEND = [
   { color: "bg-yellow-300", label: "CPT" },
   { color: "bg-blue-400", label: "ICD-10" },
-  { color: "bg-radiant", label: "Price" },
+  { color: "bg-radiant", label: "Billed Amount" },
+  { color: "bg-slate-400", label: "Other $ amount" },
 ];
 
 export default function PdfViewer({
   caseId,
   cptCodes = [],
   icd10Codes = [],
+  billedAmount,
 }: {
   caseId: string;
   cptCodes?: string[];
   icd10Codes?: string[];
+  billedAmount?: number;
 }) {
   const [numPages, setNumPages] = useState(0);
   const [pageNumber, setPageNumber] = useState(1);
-  const highlight = useMemo(() => makeHighlighter(cptCodes, icd10Codes), [cptCodes, icd10Codes]);
+  const highlight = useMemo(
+    () => makeHighlighter(cptCodes, icd10Codes, billedAmount),
+    [cptCodes, icd10Codes, billedAmount]
+  );
+
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [pageWidth, setPageWidth] = useState(380);
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const observer = new ResizeObserver((entries) => {
+      const width = entries[0]?.contentRect.width;
+      if (width) setPageWidth(Math.max(240, Math.min(width - 24, 900)));
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
 
   return (
     <div className="flex h-full flex-col overflow-hidden rounded-xl border border-border bg-card shadow-soft">
@@ -66,6 +104,7 @@ export default function PdfViewer({
             className="h-7 w-7"
             disabled={pageNumber <= 1}
             onClick={() => setPageNumber((p) => p - 1)}
+            aria-label="Previous page"
           >
             <ChevronLeft size={15} />
           </Button>
@@ -78,6 +117,7 @@ export default function PdfViewer({
             className="h-7 w-7"
             disabled={pageNumber >= numPages}
             onClick={() => setPageNumber((p) => p + 1)}
+            aria-label="Next page"
           >
             <ChevronRight size={15} />
           </Button>
@@ -91,7 +131,7 @@ export default function PdfViewer({
           </span>
         ))}
       </div>
-      <div className="flex-1 overflow-auto bg-muted/40 p-3">
+      <div ref={containerRef} className="flex-1 overflow-auto bg-muted/40 p-3">
         <Document
           file={`${API_URL}/api/v1/review/${caseId}/pdf`}
           onLoadSuccess={({ numPages }) => setNumPages(numPages)}
@@ -101,7 +141,7 @@ export default function PdfViewer({
         >
           <Page
             pageNumber={pageNumber}
-            width={380}
+            width={pageWidth}
             customTextRenderer={highlight}
             className="overflow-hidden rounded-lg shadow-elevated"
           />

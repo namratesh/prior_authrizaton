@@ -43,6 +43,12 @@ every field above was read correctly and unambiguously from the source text. If 
 field is missing from the source, leave it null/empty and lower your confidence \
 accordingly rather than guessing.
 
+Also return field_confidence: a JSON object with your own calibrated confidence \
+(0.0-1.0) for each of these six fields individually: cpt_codes, icd10_codes, \
+billed_amount, patient_zip, provider_npi, requested_service_description. A field \
+that's missing or ambiguous in the source should get a low score even if your \
+overall extraction_confidence is high.
+
 You will also be given the PATIENT'S CLAIM QUERY — their own words on what they're \
 asking for. Use it, together with the extracted document, to decide which \
 downstream checks are actually relevant to answering it:
@@ -61,7 +67,10 @@ Respond with ONLY a JSON object, no prose outside it, no markdown fences:
 "icd10_codes": [...], "cpt_codes": [...], "diagnosis_summary": "...", \
 "prescribing_physician": "...", "provider_npi": "...", \
 "requested_service_description": "...", "billed_amount": 0.0, \
-"extraction_confidence": 0.0, "relevant_agents": ["cost", "rag", "alternative"], \
+"extraction_confidence": 0.0, \
+"field_confidence": {"cpt_codes": 0.0, "icd10_codes": 0.0, "billed_amount": 0.0, \
+"patient_zip": 0.0, "provider_npi": 0.0, "requested_service_description": 0.0}, \
+"relevant_agents": ["cost", "rag", "alternative"], \
 "query_classification_reason": "..."}
 """
 
@@ -70,6 +79,32 @@ FAIL_SAFE_CONFIDENCE = 0.0
 # malformed reply), run every downstream check rather than silently skip one
 # that might have mattered — mirrors the confidence fail-safe below.
 ALL_AGENTS = ["cost", "rag", "alternative"]
+
+FIELD_CONFIDENCE_KEYS = (
+    "cpt_codes",
+    "icd10_codes",
+    "billed_amount",
+    "patient_zip",
+    "provider_npi",
+    "requested_service_description",
+)
+
+
+def _parse_field_confidence(raw: object) -> dict[str, float]:
+    """Fail-safe parse: keep only known keys with a valid float 0.0-1.0. Never
+    fabricate a value for a key the LLM didn't return — the UI falls back to
+    the overall extraction_confidence for any missing key."""
+    if not isinstance(raw, dict):
+        return {}
+    result = {}
+    for key in FIELD_CONFIDENCE_KEYS:
+        if key not in raw:
+            continue
+        try:
+            result[key] = max(0.0, min(1.0, float(raw[key])))
+        except (TypeError, ValueError):
+            continue
+    return result
 
 
 def _strip_markdown_fence(text: str) -> str:
@@ -155,6 +190,7 @@ def run_intake_agent(
         requested_service_description=parsed.get("requested_service_description"),
         billed_amount=parsed.get("billed_amount"),
         extraction_confidence=confidence,
+        field_confidence=_parse_field_confidence(parsed.get("field_confidence")),
         raw_document_text=raw_document_text,
         patient_query=patient_query,
         few_shot_corrections_used=[ex["case_id"] for ex in few_shot],

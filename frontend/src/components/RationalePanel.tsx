@@ -51,7 +51,7 @@ export default function RationalePanel({
           </div>
         )}
 
-        {needsHumanReview && (
+        {needsHumanReview ? (
           <div className="animate-pulse rounded-xl border border-amber-300 bg-amber-50 p-3">
             <p className="flex items-center gap-1.5 text-xs font-semibold text-amber-800">
               <AlertTriangle size={13} />
@@ -60,6 +60,15 @@ export default function RationalePanel({
             <p className="mt-1 text-sm text-amber-900">{interruptReason}</p>
             {rationale && <p className="mt-2 text-xs text-amber-800">{rationale}</p>}
           </div>
+        ) : (
+          rationale && (
+            <div>
+              <SectionTitle icon={FileSearch}>Reasoning</SectionTitle>
+              <p className="rounded-lg border border-border bg-muted/40 p-2 text-xs leading-relaxed text-foreground/80">
+                {rationale}
+              </p>
+            </div>
+          )
         )}
 
         <div>
@@ -78,9 +87,11 @@ export default function RationalePanel({
               ))}
             </ul>
           )}
-          <p className="mt-1 text-xs text-muted-foreground">
-            Similarity score: {policy.policy_match_confidence}
-          </p>
+          {policy.policy_match_confidence != null && (
+            <p className="mt-1 text-xs text-muted-foreground">
+              Similarity score: {Math.round(policy.policy_match_confidence * 100)}%
+            </p>
+          )}
         </div>
 
         <div>

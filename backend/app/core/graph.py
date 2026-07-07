@@ -56,6 +56,7 @@ from app.agents.peer_review_agent import run_peer_review_agent
 from app.agents.rag_agent import run_rag_agent
 from app.agents.summarizer_agent import run_summarizer_agent
 from app.core.state import AgenticPAState
+from app.core.settings_store import get_settings
 from app.core.supervisor import compute_sla_deadline
 from app.db.session import SessionLocal
 
@@ -77,10 +78,15 @@ def intake_node(state: AgenticPAState) -> dict:
             case_id=state.clinical.case_id,
             patient_query=state.clinical.patient_query or "",
         )
+        settings = get_settings(db)
+    # Admin-disabled agents (Admin Portal's System Configuration panel) are
+    # subtracted from Intake's query-driven relevant_agents — an agent that's
+    # off can't be "relevant" regardless of what the query classifier said.
+    relevant_agents = [a for a in relevant_agents if settings.agents_enabled.get(a, True)]
     routing = state.routing.model_copy(
         update={
             "current_phase": "cost_check",
-            "sla_deadline": state.routing.sla_deadline or compute_sla_deadline(),
+            "sla_deadline": state.routing.sla_deadline or compute_sla_deadline(sla_hours=settings.sla_hours),
             "relevant_agents": relevant_agents,
             "query_classification_reason": classification_reason,
         }
@@ -198,7 +204,9 @@ def alternative_node(state: AgenticPAState) -> dict:
 
 
 def peer_review_node(state: AgenticPAState) -> dict:
-    routing, trace_entry = run_peer_review_agent(state)
+    with SessionLocal() as db:
+        confidence_threshold = get_settings(db).confidence_threshold
+    routing, trace_entry = run_peer_review_agent(state, confidence_threshold=confidence_threshold)
     audit = state.audit.model_copy(update=_trace(state, **trace_entry))
     return {"routing": routing, "audit": audit}
 

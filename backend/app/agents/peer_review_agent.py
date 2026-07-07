@@ -41,7 +41,7 @@ import json
 from app.core.llm_client import generate_text
 from app.core.state import AgenticPAState, RoutingPayload
 
-INTAKE_CONFIDENCE_THRESHOLD = 0.85
+DEFAULT_CONFIDENCE_THRESHOLD = 0.85
 
 LOW_CONFIDENCE_EXTRACTION = "LOW_CONFIDENCE_EXTRACTION"
 FINANCIAL_EXCEPTION = "FINANCIAL_EXCEPTION"
@@ -71,12 +71,14 @@ Respond with ONLY a JSON object, no prose outside it, no markdown fences:
 """
 
 
-def evaluate_hard_gates(state: AgenticPAState) -> list[str]:
+def evaluate_hard_gates(
+    state: AgenticPAState, confidence_threshold: float = DEFAULT_CONFIDENCE_THRESHOLD
+) -> list[str]:
     """Pure rule evaluation. Returns the list of hard-gate flags that fired (may be empty)."""
     flags: list[str] = []
 
     confidence = state.clinical.extraction_confidence
-    if confidence is None or confidence < INTAKE_CONFIDENCE_THRESHOLD:
+    if confidence is None or confidence < confidence_threshold:
         flags.append(LOW_CONFIDENCE_EXTRACTION)
 
     relevant_agents = state.routing.relevant_agents
@@ -122,9 +124,11 @@ def _strip_markdown_fence(text: str) -> str:
     return stripped.strip()
 
 
-def run_peer_review_agent(state: AgenticPAState) -> tuple[RoutingPayload, dict]:
+def run_peer_review_agent(
+    state: AgenticPAState, confidence_threshold: float = DEFAULT_CONFIDENCE_THRESHOLD
+) -> tuple[RoutingPayload, dict]:
     """Run both layers. Returns (updated RoutingPayload, audit trace entry)."""
-    hard_gate_flags = evaluate_hard_gates(state)
+    hard_gate_flags = evaluate_hard_gates(state, confidence_threshold=confidence_threshold)
     needs_human_review = bool(hard_gate_flags)
 
     try:

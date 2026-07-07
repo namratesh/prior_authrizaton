@@ -2,7 +2,7 @@ import { SlidersHorizontal } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 
-function ConfidenceBadge({ confidence }: { confidence: number | null | undefined }) {
+export function ConfidenceBadge({ confidence }: { confidence: number | null | undefined }) {
   if (confidence == null) return null;
   const pct = Math.round(confidence * 100);
   const variant = pct >= 85 ? "success" : pct >= 60 ? "warning" : "destructive";
@@ -13,9 +13,6 @@ function ConfidenceBadge({ confidence }: { confidence: number | null | undefined
   );
 }
 
-// Intake returns one calibrated confidence for the whole extraction, not a
-// separate score per field — so every field shows the same badge value.
-// (Documented simplification, not a bug: see CLAUDE.md's Reviewer Portal spec.)
 export interface FieldDiffs {
   cpt_codes?: string;
   icd10_codes?: string;
@@ -28,21 +25,27 @@ export interface FieldDiffs {
 export default function ReviewForm({
   clinical,
   confidence,
+  fieldConfidence,
   diffs,
   onChange,
 }: {
   clinical: Record<string, any>;
   confidence: number | null;
+  fieldConfidence?: Record<string, number> | null;
   diffs: FieldDiffs;
   onChange: (field: keyof FieldDiffs, value: string) => void;
 }) {
   const field = (label: string, key: keyof FieldDiffs, originalValue: string) => {
     const edited = diffs[key] !== undefined && diffs[key] !== originalValue;
+    // Per-field confidence when Intake provided one; falls back to the
+    // overall extraction_confidence for cases extracted before this field
+    // existed, or if the LLM didn't return a score for this specific field.
+    const fieldScore = fieldConfidence?.[key] ?? confidence;
     return (
       <div className="mb-4">
         <div className="mb-1.5 flex items-center gap-2">
           <label className="text-xs font-medium text-muted-foreground">{label}</label>
-          <ConfidenceBadge confidence={confidence} />
+          <ConfidenceBadge confidence={fieldScore} />
           {edited && <span className="text-[10px] font-medium text-teal-600">edited</span>}
         </div>
         <Input

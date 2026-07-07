@@ -57,6 +57,10 @@ class Case(Base):
     current_phase: Mapped[str | None] = mapped_column(String(64), nullable=True)
     final_status: Mapped[str | None] = mapped_column(String(64), nullable=True)
     needs_human_review: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    assigned_to: Mapped[str | None] = mapped_column(
+        String(36), ForeignKey("users.id"), nullable=True, index=True
+    )
+    assigned_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     clinical_payload: Mapped[dict] = mapped_column(JSONB, default=dict, nullable=False)
     financial_payload: Mapped[dict] = mapped_column(JSONB, default=dict, nullable=False)
@@ -194,6 +198,28 @@ class LocalityCounty(Base):
 
     __table_args__ = (
         Index("ix_locality_counties_state", "state"),
+    )
+
+
+class AdminSettings(Base):
+    """Single-row (id=1) table of admin-tunable thresholds that used to be
+    hardcoded constants (SLA window, expedite window, confidence threshold,
+    which downstream agents are enabled). Read by supervisor.py /
+    peer_review_agent.py at call time so a change takes effect on the next
+    case without a redeploy.
+
+    // DEMO-REAL
+    """
+
+    __tablename__ = "admin_settings"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    sla_hours: Mapped[float] = mapped_column(Float, nullable=False)
+    expedite_hours: Mapped[float] = mapped_column(Float, nullable=False)
+    confidence_threshold: Mapped[float] = mapped_column(Float, nullable=False)
+    agents_enabled: Mapped[dict] = mapped_column(JSONB, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False
     )
 
 

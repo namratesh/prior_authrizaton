@@ -11,7 +11,16 @@ export const DEMO_PATIENT = {
 
 export const DEMO_REVIEWER_ID = "reviewer-1";
 
+// Two seeded reviewer users (app/core/fixtures.py) so "My Queue" vs
+// "Unassigned"/team queue is demonstrable without building real reviewer
+// login — a dropdown swap of "who am I" rather than a session.
+export const DEMO_REVIEWERS = [
+  { id: "reviewer-1", name: "Demo Reviewer" },
+  { id: "reviewer-2", name: "Demo Reviewer 2" },
+];
+
 const CASE_HISTORY_KEY = "agenticpa_patient_case_history";
+const REVIEWER_ID_KEY = "agenticpa_active_reviewer_id";
 
 function loadCaseHistory(): string[] {
   try {
@@ -21,11 +30,17 @@ function loadCaseHistory(): string[] {
   }
 }
 
+function loadReviewerId(): string {
+  return localStorage.getItem(REVIEWER_ID_KEY) || DEMO_REVIEWER_ID;
+}
+
 interface AppState {
   role: "patient" | "reviewer" | "admin";
   setRole: (role: AppState["role"]) => void;
   caseHistory: string[];
   addCaseToHistory: (caseId: string) => void;
+  reviewerId: string;
+  setReviewerId: (id: string) => void;
 }
 
 export const useAppStore = create<AppState>((set, get) => ({
@@ -36,5 +51,10 @@ export const useAppStore = create<AppState>((set, get) => ({
     const next = [caseId, ...get().caseHistory.filter((id) => id !== caseId)];
     localStorage.setItem(CASE_HISTORY_KEY, JSON.stringify(next));
     set({ caseHistory: next });
+  },
+  reviewerId: loadReviewerId(),
+  setReviewerId: (id) => {
+    localStorage.setItem(REVIEWER_ID_KEY, id);
+    set({ reviewerId: id });
   },
 }));

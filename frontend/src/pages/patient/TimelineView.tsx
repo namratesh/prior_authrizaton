@@ -11,19 +11,25 @@ export default function TimelineView({ caseId }: { caseId: string }) {
 
   useEffect(() => {
     let cancelled = false;
+    let interval: ReturnType<typeof setInterval> | undefined;
     const poll = async () => {
       try {
         const s = await getStatus(caseId);
-        if (!cancelled) setStatus(s);
+        if (cancelled) return;
+        setStatus(s);
+        if (s.final_status != null && interval) {
+          clearInterval(interval);
+          interval = undefined;
+        }
       } catch {
         // transient poll failure — try again next tick
       }
     };
     poll();
-    const interval = setInterval(poll, 2500);
+    interval = setInterval(poll, 2500);
     return () => {
       cancelled = true;
-      clearInterval(interval);
+      if (interval) clearInterval(interval);
     };
   }, [caseId]);
 
@@ -48,6 +54,7 @@ export default function TimelineView({ caseId }: { caseId: string }) {
         currentPhase={status.current_phase}
         needsHumanReview={status.needs_human_review}
         interruptReason={status.interrupt_reason}
+        caseStatus={status.case_status}
       />
       <CostCard estimate={status.estimated_out_of_pocket} />
       {status.is_expedite && (

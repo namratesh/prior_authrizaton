@@ -1,14 +1,15 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ClipboardCheck, Inbox as InboxIcon, ChevronRight, Check, Pencil, MessageSquare, Ban } from "lucide-react";
-import { adjudicate, getAdminMetrics, getReview, type ReviewResponse } from "../store/api";
-import { DEMO_REVIEWER_ID } from "../store/useAppStore";
+import { ArrowLeft, ClipboardCheck, Inbox as InboxIcon, ChevronRight, Check, Pencil, MessageSquare, Ban, UserPlus, UserMinus } from "lucide-react";
+import { adjudicate, assignCase, unassignCase, getAdminMetrics, getReview, type ReviewResponse } from "../store/api";
+import { DEMO_REVIEWERS, useAppStore } from "../store/useAppStore";
 import PdfViewer from "@/components/PdfViewer";
-import ReviewForm, { type FieldDiffs } from "@/components/ReviewForm";
+import ReviewForm, { ConfidenceBadge, type FieldDiffs } from "@/components/ReviewForm";
 import RationalePanel from "@/components/RationalePanel";
 import LoadingState from "@/components/LoadingState";
 import UrgencyBadge from "@/components/UrgencyBadge";
+import SlaCountdown from "@/components/SlaCountdown";
 import { is_expedite_client } from "../store/sla";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -24,31 +25,102 @@ import {
 } from "@/components/ui/dialog";
 import { toast } from "@/components/ui/sonner";
 
+type QueueTab = "mine" | "unassigned" | "all";
+
 function CaseQueue({ onSelect }: { onSelect: (caseId: string) => void }) {
-  const [cases, setCases] = useState<Awaited<ReturnType<typeof getAdminMetrics>>["cases"]>();
+  const [allCases, setAllCases] = useState<Awaited<ReturnType<typeof getAdminMetrics>>["cases"]>();
+  const [tab, setTab] = useState<QueueTab>("mine");
+  const [claiming, setClaiming] = useState<string | null>(null);
+  const reviewerId = useAppStore((s) => s.reviewerId);
+  const setReviewerId = useAppStore((s) => s.setReviewerId);
+
+  const reload = () =>
+    getAdminMetrics().then((m) => setAllCases(m.cases.filter((c) => c.needs_human_review && !c.final_status)));
 
   useEffect(() => {
-    getAdminMetrics().then((m) => setCases(m.cases.filter((c) => c.needs_human_review)));
+    reload();
   }, []);
 
-  if (cases === undefined) return <LoadingState label="Loading case queue..." />;
+  if (allCases === undefined) return <LoadingState label="Loading case queue..." />;
+
+  const cases = allCases.filter((c) => {
+    if (tab === "mine") return c.assigned_to === reviewerId;
+    if (tab === "unassigned") return !c.assigned_to;
+    return true;
+  });
+
+  const claim = async (caseId: string) => {
+    setClaiming(caseId);
+    try {
+      await assignCase(caseId, reviewerId);
+      await reload();
+    } finally {
+      setClaiming(null);
+    }
+  };
+
+  const release = async (caseId: string) => {
+    setClaiming(caseId);
+    try {
+      await unassignCase(caseId);
+      await reload();
+    } finally {
+      setClaiming(null);
+    }
+  };
+
+  const TABS: { key: QueueTab; label: string }[] = [
+    { key: "mine", label: "My Queue" },
+    { key: "unassigned", label: "Unassigned" },
+    { key: "all", label: "All" },
+  ];
 
   return (
     <div className="mx-auto max-w-3xl p-8">
-      <div className="mb-1 flex items-center gap-2">
-        <span className="grid h-9 w-9 place-items-center rounded-xl bg-[linear-gradient(135deg,#264683,#199e88)] text-white shadow-soft">
-          <ClipboardCheck size={18} />
-        </span>
-        <h1 className="font-display text-2xl font-bold tracking-tight">Cases Awaiting Your Review</h1>
+      <div className="mb-1 flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <span className="grid h-9 w-9 place-items-center rounded-xl bg-[linear-gradient(135deg,#264683,#199e88)] text-white shadow-soft">
+            <ClipboardCheck size={18} />
+          </span>
+          <h1 className="font-display text-2xl font-bold tracking-tight">Cases Awaiting Your Review</h1>
+        </div>
+        <select
+          value={reviewerId}
+          onChange={(e) => setReviewerId(e.target.value)}
+          className="h-8 rounded-md border border-input bg-background px-2 text-xs text-foreground"
+          aria-label="Active reviewer"
+        >
+          {DEMO_REVIEWERS.map((r) => (
+            <option key={r.id} value={r.id}>
+              {r.name}
+            </option>
+          ))}
+        </select>
       </div>
-      <p className="mb-6 text-sm text-muted-foreground">
-        {cases.length} case{cases.length === 1 ? "" : "s"} flagged for human review.
+      <p className="mb-4 text-sm text-muted-foreground">
+        {allCases.length} case{allCases.length === 1 ? "" : "s"} flagged for human review.
       </p>
+
+      <div className="mb-4 flex gap-1 rounded-lg bg-muted/50 p-1">
+        {TABS.map((t) => (
+          <button
+            key={t.key}
+            onClick={() => setTab(t.key)}
+            className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
+              tab === t.key ? "bg-card shadow-soft text-foreground" : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
 
       {cases.length === 0 ? (
         <Card className="p-10 text-center">
           <InboxIcon size={32} className="mx-auto mb-3 text-muted-foreground" />
-          <p className="text-sm text-muted-foreground">No cases currently need human review.</p>
+          <p className="text-sm text-muted-foreground">
+            {tab === "mine" ? "No cases assigned to you." : "No cases here."}
+          </p>
         </Card>
       ) : (
         <div className="space-y-3">
@@ -59,31 +131,47 @@ function CaseQueue({ onSelect }: { onSelect: (caseId: string) => void }) {
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: i * 0.06 }}
             >
-              <button onClick={() => onSelect(c.case_id)} className="w-full text-left">
-                <Card className="relative flex items-center justify-between overflow-hidden p-4 pl-5 transition-shadow hover:shadow-elevated">
-                  <span className="absolute inset-y-0 left-0 w-1.5 bg-[linear-gradient(180deg,#264683,#199e88)]" />
-                  <div className="min-w-0">
-                    <p className="text-sm font-semibold">{c.case_number}</p>
-                    <p className="mt-0.5 truncate text-xs text-muted-foreground">
-                      {c.requested_service_description || "Processing..."}
-                    </p>
-                    <div className="mt-1.5 flex flex-wrap gap-1">
-                      {c.flags.map((f) => (
-                        <span
-                          key={f}
-                          className="rounded-full bg-amber-50 px-1.5 py-0.5 text-[10px] font-medium text-amber-700"
-                        >
-                          {f}
-                        </span>
-                      ))}
-                    </div>
+              <Card className="relative flex items-center justify-between overflow-hidden p-4 pl-5 transition-shadow hover:shadow-elevated">
+                <span className="absolute inset-y-0 left-0 w-1.5 bg-[linear-gradient(180deg,#264683,#199e88)]" />
+                <button onClick={() => onSelect(c.case_id)} className="min-w-0 flex-1 text-left">
+                  <p className="text-sm font-semibold">{c.case_number}</p>
+                  <p className="mt-0.5 truncate text-xs text-muted-foreground">
+                    {c.requested_service_description || "Processing..."}
+                  </p>
+                  <div className="mt-1.5 flex flex-wrap items-center gap-1">
+                    {c.flags.map((f) => (
+                      <span
+                        key={f}
+                        className="rounded-full bg-amber-50 px-1.5 py-0.5 text-[10px] font-medium text-amber-700"
+                      >
+                        {f}
+                      </span>
+                    ))}
+                    {c.assigned_to && (
+                      <span className="rounded-full bg-navy-50 px-1.5 py-0.5 text-[10px] font-medium text-navy-700">
+                        {c.assigned_to === reviewerId ? "Assigned to you" : `Assigned: ${c.assigned_to}`}
+                      </span>
+                    )}
                   </div>
-                  <div className="flex shrink-0 items-center gap-2">
-                    <UrgencyBadge slaDeadline={c.sla_deadline} />
+                </button>
+                <div className="flex shrink-0 items-center gap-2">
+                  <SlaCountdown slaDeadline={c.sla_deadline} />
+                  <UrgencyBadge slaDeadline={c.sla_deadline} />
+                  {c.assigned_to === reviewerId ? (
+                    <Button size="sm" variant="ghost" disabled={claiming === c.case_id} onClick={() => release(c.case_id)}>
+                      <UserMinus size={14} />
+                    </Button>
+                  ) : !c.assigned_to ? (
+                    <Button size="sm" variant="outline" disabled={claiming === c.case_id} onClick={() => claim(c.case_id)}>
+                      <UserPlus size={14} />
+                      Claim
+                    </Button>
+                  ) : null}
+                  <button onClick={() => onSelect(c.case_id)}>
                     <ChevronRight size={16} className="text-muted-foreground" />
-                  </div>
-                </Card>
-              </button>
+                  </button>
+                </div>
+              </Card>
             </motion.div>
           ))}
         </div>
@@ -102,6 +190,7 @@ export default function ReviewerPortal() {
   const [showClarify, setShowClarify] = useState(false);
   const [showDeny, setShowDeny] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const reviewerId = useAppStore((s) => s.reviewerId);
 
   useEffect(() => {
     if (caseId) getReview(caseId).then(setReview);
@@ -128,7 +217,7 @@ export default function ReviewerPortal() {
       const clinicalDiffs = buildClinicalDiffs();
       await adjudicate(caseId, {
         action,
-        reviewer_id: DEMO_REVIEWER_ID,
+        reviewer_id: reviewerId,
         diffs: Object.keys(clinicalDiffs).length ? { clinical: clinicalDiffs } : {},
         question: action === "clarify" ? clarifyQuestion : undefined,
         original_reason: action === "provider_responded" ? review.routing?.interrupt_reason : undefined,
@@ -159,11 +248,27 @@ export default function ReviewerPortal() {
   return (
     <div className="flex h-[calc(100vh-64px)] flex-col overflow-hidden">
       <div className="flex shrink-0 items-center justify-between border-b border-border bg-card/70 px-5 py-3 backdrop-blur">
-        <div>
-          <p className="text-xs font-medium text-muted-foreground">Reviewing {review.case_number}</p>
-          <p className="text-sm font-semibold">{review.clinical?.requested_service_description}</p>
+        <div className="flex items-center gap-3">
+          <Button
+            variant="ghost"
+            size="icon"
+            aria-label="Back to case queue"
+            onClick={() => navigate("/reviewer")}
+          >
+            <ArrowLeft size={18} />
+          </Button>
+          <div>
+            <p className="text-xs font-medium text-muted-foreground">Reviewing {review.case_number}</p>
+            <div className="flex items-center gap-2">
+              <p className="text-sm font-semibold">{review.clinical?.requested_service_description}</p>
+              <ConfidenceBadge confidence={review.clinical?.extraction_confidence} />
+            </div>
+          </div>
         </div>
-        <UrgencyBadge slaDeadline={review.routing?.sla_deadline} size="md" />
+        <div className="flex items-center gap-2">
+          <SlaCountdown slaDeadline={review.routing?.sla_deadline} />
+          <UrgencyBadge slaDeadline={review.routing?.sla_deadline} size="md" />
+        </div>
       </div>
 
       <div className="flex flex-1 gap-3 overflow-hidden p-3">
@@ -172,12 +277,14 @@ export default function ReviewerPortal() {
             caseId={caseId}
             cptCodes={review.clinical?.cpt_codes || []}
             icd10Codes={review.clinical?.icd10_codes || []}
+            billedAmount={review.clinical?.billed_amount}
           />
         </div>
         <div className="w-[30%]">
           <ReviewForm
             clinical={review.clinical}
             confidence={review.clinical?.extraction_confidence}
+            fieldConfidence={review.clinical?.field_confidence}
             diffs={diffs}
             onChange={(field, value) => setDiffs((d) => ({ ...d, [field]: value }))}
           />
@@ -204,9 +311,9 @@ export default function ReviewerPortal() {
               <AlertDescription>
                 Awaiting Provider Response: {review.routing.interrupt_reason}
               </AlertDescription>
-              {/* DEMO-MOCKED: manual stub button instead of a real provider-facing notification system. */}
+              {/* DEMO-MOCKED: manual button instead of a real provider-facing notification system. */}
               <Button size="sm" variant="secondary" disabled={submitting} onClick={() => submit("provider_responded")}>
-                Provider Responded (stub)
+                Mark Provider Responded
               </Button>
             </Alert>
           )}

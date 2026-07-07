@@ -68,18 +68,27 @@ export default function InboxView({ caseIds }: { caseIds: string[] }) {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: i * 0.05 }}
           >
-            <button onClick={() => setSelected(id)} className="w-full text-left">
+            <button onClick={() => setSelected(id)} className="w-full text-left" disabled={!r}>
               <Card className="flex items-center justify-between p-4 transition-shadow hover:shadow-elevated">
-                <div>
-                  <p className="text-sm font-medium">{r?.case_number || "Processing..."}</p>
-                  <p className="mt-0.5 text-xs text-muted-foreground">
-                    {r?.clinical?.requested_service_description || "Processing..."}
-                  </p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <StatusBadge status={r?.final_status} />
-                  <ChevronRight size={16} className="text-muted-foreground" />
-                </div>
+                {r ? (
+                  <>
+                    <div>
+                      <p className="text-sm font-medium">{r.case_number}</p>
+                      <p className="mt-0.5 text-xs text-muted-foreground">
+                        {r.clinical?.requested_service_description || "—"}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <StatusBadge status={r.final_status} />
+                      <ChevronRight size={16} className="text-muted-foreground" />
+                    </div>
+                  </>
+                ) : (
+                  <div className="w-full space-y-2">
+                    <div className="h-3.5 w-24 animate-pulse rounded bg-muted" />
+                    <div className="h-3 w-40 animate-pulse rounded bg-muted" />
+                  </div>
+                )}
               </Card>
             </button>
           </motion.div>

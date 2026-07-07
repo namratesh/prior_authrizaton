@@ -24,6 +24,11 @@ class ClinicalPayload(BaseModel):
     requested_service_description: Optional[str] = None
     billed_amount: Optional[float] = None
     extraction_confidence: Optional[float] = None
+    # Per-field confidence for the Reviewer Portal's field-level indicators.
+    # Keyed by the 6 reviewer-facing fields (cpt_codes, icd10_codes,
+    # billed_amount, patient_zip, provider_npi, requested_service_description).
+    # Falls back to extraction_confidence in the UI when a key is missing.
+    field_confidence: dict[str, float] = Field(default_factory=dict)
     raw_document_text: Optional[str] = None
     few_shot_corrections_used: list[str] = Field(default_factory=list)
     patient_query: Optional[str] = None

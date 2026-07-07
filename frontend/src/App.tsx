@@ -28,14 +28,15 @@ function ProtectedLayout({
   allow,
 }: {
   children: ReactElement;
-  allow: Role;
+  allow: Role | Role[];
 }) {
   const auth = getAuth();
   const location = useLocation();
   if (!auth) return <Navigate to="/login" replace />;
   // Each portal is scoped to its own role — a logged-in Patient must not be
   // able to reach the Reviewer/Admin views (and vice versa) by URL alone.
-  if (auth.role !== allow) return <Navigate to={ROLE_HOME[auth.role]} replace />;
+  const allowed = Array.isArray(allow) ? allow : [allow];
+  if (!allowed.includes(auth.role)) return <Navigate to={ROLE_HOME[auth.role]} replace />;
   return (
     <div
       data-role={auth.role}
@@ -69,7 +70,7 @@ function App() {
           <Route path="/" element={<ProtectedLayout allow="patient"><PatientPortal /></ProtectedLayout>} />
           <Route path="/patient" element={<ProtectedLayout allow="patient"><PatientPortal /></ProtectedLayout>} />
           <Route path="/reviewer" element={<ProtectedLayout allow="reviewer"><ReviewerPortal /></ProtectedLayout>} />
-          <Route path="/reviewer/:caseId" element={<ProtectedLayout allow="reviewer"><ReviewerPortal /></ProtectedLayout>} />
+          <Route path="/reviewer/:caseId" element={<ProtectedLayout allow={["reviewer", "admin"]}><ReviewerPortal /></ProtectedLayout>} />
           <Route path="/admin" element={<ProtectedLayout allow="admin"><AdminPortal /></ProtectedLayout>} />
         </Routes>
       </TooltipProvider>

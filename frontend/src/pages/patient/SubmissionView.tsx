@@ -57,7 +57,12 @@ export default function SubmissionView({ onUploaded }: { onUploaded: (caseId: st
 
       <Card>
         <CardContent className="pt-6">
-          <label className="text-sm font-medium">What are you requesting?</label>
+          <div className="mb-2 flex items-center gap-2">
+            <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-navy-100 text-[11px] font-semibold text-navy-700">
+              1
+            </span>
+            <label className="text-sm font-medium">What are you requesting?</label>
+          </div>
           <Textarea
             value={query}
             onChange={(e) => setQuery(e.target.value)}
@@ -65,6 +70,10 @@ export default function SubmissionView({ onUploaded }: { onUploaded: (caseId: st
             rows={3}
             className="mt-2"
           />
+          <p className="mt-1.5 text-xs text-muted-foreground">
+            This tells us which checks to run on your case — we'll detect the CPT/ICD-10 codes and
+            requested service directly from your document after you upload it.
+          </p>
         </CardContent>
       </Card>
 
@@ -108,7 +117,14 @@ export default function SubmissionView({ onUploaded }: { onUploaded: (caseId: st
           {uploading ? <FileText size={30} className="animate-pulse" /> : <UploadCloud size={30} />}
         </div>
         <p className="font-display text-lg font-semibold">
-          {uploading ? "Uploading..." : "Drag & drop your Prior Authorization PDF"}
+          {uploading ? "Uploading..." : (
+            <>
+              <span className="mr-2 inline-grid h-5 w-5 place-items-center rounded-full bg-navy-100 align-middle text-[11px] font-semibold text-navy-700">
+                2
+              </span>
+              Drag &amp; drop your Prior Authorization PDF
+            </>
+          )}
         </p>
         <p className="mt-1 text-sm text-muted-foreground">
           {hasQuery ? "or click to browse" : "Describe your request above first"}

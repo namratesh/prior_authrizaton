@@ -11,6 +11,7 @@ from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 DEMO_REVIEWER_ID = "reviewer-1"
+DEMO_REVIEWER_2_ID = "reviewer-2"
 DEMO_PATIENT_ID = "patient-1"
 
 
@@ -24,6 +25,16 @@ def ensure_demo_users(db: Session) -> None:
             """
         ),
         {"id": DEMO_REVIEWER_ID, "name": "Demo Reviewer", "role": "reviewer"},
+    )
+    db.execute(
+        text(
+            """
+            INSERT INTO users (id, name, role, created_at)
+            VALUES (:id, :name, :role, now())
+            ON CONFLICT (id) DO NOTHING
+            """
+        ),
+        {"id": DEMO_REVIEWER_2_ID, "name": "Demo Reviewer 2", "role": "reviewer"},
     )
     db.execute(
         text(

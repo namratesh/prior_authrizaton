@@ -274,7 +274,7 @@ function SystemConfigCard() {
         <Settings2 size={16} className="text-navy-600" />
         <h3 className="text-sm font-medium">System Configuration</h3>
       </div>
-      <div className="grid grid-cols-1 gap-4 p-4 sm:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 p-4 sm:grid-cols-4">
         <label className="text-xs">
           <span className="mb-1 block font-medium text-muted-foreground">SLA Window (hours)</span>
           <Input
@@ -305,6 +305,18 @@ function SystemConfigCard() {
             step={0.01}
             value={settings.confidence_threshold}
             onChange={(e) => setSettings({ ...settings, confidence_threshold: Number(e.target.value) })}
+          />
+        </label>
+        <label className="text-xs">
+          <span className="mb-1 block font-medium text-muted-foreground">Overcharge Threshold (%)</span>
+          <Input
+            type="number"
+            min={0}
+            step={1}
+            value={settings.overcharge_threshold_percent}
+            onChange={(e) =>
+              setSettings({ ...settings, overcharge_threshold_percent: Number(e.target.value) })
+            }
           />
         </label>
       </div>

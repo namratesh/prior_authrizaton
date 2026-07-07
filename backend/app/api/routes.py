@@ -172,6 +172,10 @@ def get_review(case_id: str, db: Session = Depends(get_db)):
         "financial": row["financial_payload"],
         "policy": row["policy_payload"],
         "routing": row["routing_payload"],
+        "is_expedite": is_expedite(
+            _parse_dt((row["routing_payload"] or {}).get("sla_deadline")),
+            expedite_hours=get_settings(db).expedite_hours,
+        ),
         "decision_letter": summarizer_entry.get("decision_letter") if summarizer_entry else None,
         "agent_trace": trace,
     }
@@ -308,6 +312,7 @@ def get_admin_settings(db: Session = Depends(get_db)):
         "sla_hours": s.sla_hours,
         "expedite_hours": s.expedite_hours,
         "confidence_threshold": s.confidence_threshold,
+        "overcharge_threshold_percent": s.overcharge_threshold_percent,
         "agents_enabled": s.agents_enabled,
     }
 
@@ -317,17 +322,22 @@ def put_admin_settings(payload: dict, db: Session = Depends(get_db)):
     """Admin-tunable thresholds — previously hardcoded constants with no
     configuration surface at all. Takes effect on the next case (agents read
     settings_store.get_settings(db) at call time, not at process start)."""
-    s = update_settings(
-        db,
-        sla_hours=payload.get("sla_hours"),
-        expedite_hours=payload.get("expedite_hours"),
-        confidence_threshold=payload.get("confidence_threshold"),
-        agents_enabled=payload.get("agents_enabled"),
-    )
+    try:
+        s = update_settings(
+            db,
+            sla_hours=payload.get("sla_hours"),
+            expedite_hours=payload.get("expedite_hours"),
+            confidence_threshold=payload.get("confidence_threshold"),
+            overcharge_threshold_percent=payload.get("overcharge_threshold_percent"),
+            agents_enabled=payload.get("agents_enabled"),
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
     return {
         "sla_hours": s.sla_hours,
         "expedite_hours": s.expedite_hours,
         "confidence_threshold": s.confidence_threshold,
+        "overcharge_threshold_percent": s.overcharge_threshold_percent,
         "agents_enabled": s.agents_enabled,
     }
 
@@ -399,12 +409,12 @@ def admin_metrics(db: Session = Depends(get_db), group_by: str | None = None):
     drift_rows = db.execute(
         text(
             """
-            SELECT date(updated_at) AS day,
+            SELECT date(decided_at) AS day,
                    count(*) AS total,
                    count(*) FILTER (WHERE routing_payload->>'reviewer_decision' IN ('modify','deny')) AS overrides
             FROM cases
-            WHERE final_status IS NOT NULL AND updated_at > now() - interval '7 days'
-            GROUP BY date(updated_at)
+            WHERE final_status IS NOT NULL AND decided_at > now() - interval '7 days'
+            GROUP BY date(decided_at)
             ORDER BY day ASC
             """
         )

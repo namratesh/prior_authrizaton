@@ -7,14 +7,14 @@ Pure deterministic computation: no LLM call anywhere in this module (rule 1
 in CLAUDE.md — decisions are RAG retrieval + math + hardcoded rules, never a
 model). Looks up the real CMS benchmark rate for the billed CPT/zip via
 app.core.cms_rates.get_cms_rate, then flags FINANCIAL_EXCEPTION when the
-billed amount exceeds the benchmark by more than 20%.
+billed amount exceeds the benchmark by more than overcharge_threshold_percent
+(admin-tunable via settings_store.py, default 20%).
 """
 from sqlalchemy.orm import Session
 
 from app.core.cms_rates import get_cms_rate
+from app.core.settings_store import DEFAULT_OVERCHARGE_THRESHOLD_PERCENT
 from app.core.state import FinancialPayload
-
-OVERCHARGE_THRESHOLD_PERCENT = 20.0
 
 
 def run_cost_agent(
@@ -22,6 +22,7 @@ def run_cost_agent(
     cpt: str,
     zip_code: str,
     db: Session,
+    overcharge_threshold_percent: float = DEFAULT_OVERCHARGE_THRESHOLD_PERCENT,
 ) -> FinancialPayload:
     """Compute variance of a billed amount against the real CMS benchmark rate.
 
@@ -36,7 +37,7 @@ def run_cost_agent(
 
     variance_amount = billed_amount - rate
     variance_percent = (variance_amount / rate) * 100
-    is_overcharge = variance_percent > OVERCHARGE_THRESHOLD_PERCENT
+    is_overcharge = variance_percent > overcharge_threshold_percent
 
     return FinancialPayload(
         billed_amount=billed_amount,

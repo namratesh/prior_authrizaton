@@ -1,6 +1,6 @@
 # AgenticPA
 
-Multi-agent Prior Authorization system for UHG AARP Medicare — clinical RAG, financial benchmarking, human-in-the-loop review, and a self-improving feedback loop. Built for a hackathon: a tight, real, demoable end-to-end path over feature breadth. See `.claude/CLAUDE.md` for the full product/architecture spec.
+Multi-agent Prior Authorization system for UHG AARP Medicare — clinical RAG, financial benchmarking, human-in-the-loop review, and a self-improving feedback loop. Built for a hackathon: a tight, real, demoable end-to-end path over feature breadth. See `documents/FULL_DOCUMENTATION.md` for the full product/architecture spec.
 
 ## Architecture
 

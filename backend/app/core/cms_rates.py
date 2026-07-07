@@ -11,7 +11,10 @@ ingested from real CMS files in backend/data/rates/ by app/core/cms_ingest.py
 into Postgres. This module only reads that data and caches results in Redis;
 it does no ingestion itself.
 
-Results are cached in Redis under `cms_rate:{cpt}:{zip_code}`.
+Results are cached in Redis under `cms_rate:{cpt}:{zip_code}` for
+CMS_RATE_CACHE_TTL_SECONDS, so an annual CMS data re-ingestion (new RVUs,
+GPCIs, or conversion factor) is reflected within a bounded window instead of
+being masked by an entry cached before the update.
 """
 import os
 
@@ -22,6 +25,7 @@ from sqlalchemy.orm import Session
 from app.core.cms_ingest import CMS_CONVERSION_FACTOR_2026
 
 REDIS_URL = os.environ.get("REDIS_URL", "redis://localhost:6379/0")
+CMS_RATE_CACHE_TTL_SECONDS = 24 * 60 * 60
 
 _redis_client: redis.Redis | None = None
 
@@ -93,5 +97,5 @@ def get_cms_rate(
 
     rate = _compute_rate(cpt, zip_code, db)
     if rate is not None:
-        r.set(cache_key, rate)
+        r.set(cache_key, rate, ex=CMS_RATE_CACHE_TTL_SECONDS)
     return rate

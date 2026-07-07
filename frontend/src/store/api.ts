@@ -30,6 +30,7 @@ export interface ReviewResponse {
   financial: Record<string, any>;
   policy: Record<string, any>;
   routing: Record<string, any>;
+  is_expedite: boolean;
   decision_letter: string | null;
   agent_trace: Record<string, any>[];
 }
@@ -71,6 +72,7 @@ export interface AdminSettings {
   sla_hours: number;
   expedite_hours: number;
   confidence_threshold: number;
+  overcharge_threshold_percent: number;
   agents_enabled: { cost: boolean; rag: boolean; alternative: boolean };
 }
 

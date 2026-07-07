@@ -1,4 +1,4 @@
-import type { ReactElement } from "react";
+import { useEffect, type ReactElement } from "react";
 import {
   BrowserRouter,
   Routes,
@@ -16,6 +16,7 @@ import BackgroundDecor from "@/components/layout/BackgroundDecor";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { getAuth, type Role } from "./store/auth";
+import { syncSlaSettings } from "./store/sla";
 
 const ROLE_HOME: Record<Role, string> = {
   patient: "/patient",
@@ -62,6 +63,10 @@ function ProtectedLayout({
 }
 
 function App() {
+  useEffect(() => {
+    syncSlaSettings();
+  }, []);
+
   return (
     <BrowserRouter>
       <TooltipProvider delayDuration={150}>

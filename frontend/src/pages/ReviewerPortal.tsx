@@ -10,7 +10,6 @@ import RationalePanel from "@/components/RationalePanel";
 import LoadingState from "@/components/LoadingState";
 import UrgencyBadge from "@/components/UrgencyBadge";
 import SlaCountdown from "@/components/SlaCountdown";
-import { is_expedite_client } from "../store/sla";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -243,7 +242,7 @@ export default function ReviewerPortal() {
   };
 
   const lastRationaleEntry = [...review.agent_trace].reverse().find((t) => t.agent === "peer_review_auditor");
-  const isExpedite = is_expedite_client(review.routing?.sla_deadline);
+  const isExpedite = review.is_expedite;
   const decided = review.final_status != null;
 
   return (

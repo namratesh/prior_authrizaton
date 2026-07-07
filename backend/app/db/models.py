@@ -56,6 +56,7 @@ class Case(Base):
     patient_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
     current_phase: Mapped[str | None] = mapped_column(String(64), nullable=True)
     final_status: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    decided_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     needs_human_review: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     assigned_to: Mapped[str | None] = mapped_column(
         String(36), ForeignKey("users.id"), nullable=True, index=True

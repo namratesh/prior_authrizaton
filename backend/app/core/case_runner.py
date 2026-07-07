@@ -49,11 +49,12 @@ def _persist(db: Session, case_id: str, state: AgenticPAState, interrupted: bool
             text(
                 """
                 INSERT INTO cases
-                    (id, patient_name, current_phase, final_status, needs_human_review,
+                    (id, patient_name, current_phase, final_status, decided_at, needs_human_review,
                      clinical_payload, financial_payload, policy_payload, routing_payload,
                      created_at, updated_at)
                 VALUES
-                    (:id, :patient_name, :current_phase, :final_status, :needs_human_review,
+                    (:id, :patient_name, :current_phase, :final_status,
+                     CASE WHEN :final_status IS NOT NULL THEN now() ELSE NULL END, :needs_human_review,
                      :clinical_payload, :financial_payload, :policy_payload, :routing_payload,
                      now(), now())
                 """
@@ -73,6 +74,10 @@ def _persist(db: Session, case_id: str, state: AgenticPAState, interrupted: bool
                     financial_payload = :financial_payload,
                     policy_payload = :policy_payload,
                     routing_payload = :routing_payload,
+                    decided_at = CASE
+                        WHEN :final_status IS NOT NULL AND decided_at IS NULL THEN now()
+                        ELSE decided_at
+                    END,
                     updated_at = now()
                 WHERE id = :id
                 """

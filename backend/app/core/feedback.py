@@ -17,7 +17,7 @@ import re
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
-ICD10_RE = re.compile(r"\b[A-TV-Z][0-9][0-9AB](?:\.[0-9A-TV-Z]{1,4})?\b")
+ICD10_RE = re.compile(r"\b[A-Z][0-9][0-9AB](?:\.[0-9A-Z]{1,4})?\b")
 
 FEW_SHOT_LIMIT = 3
 

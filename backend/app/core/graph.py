@@ -119,11 +119,13 @@ def cost_node(state: AgenticPAState) -> dict:
     (alternative_node) instead, which runs after both complete."""
     with SessionLocal() as db:
         cpt = state.clinical.cpt_codes[0] if state.clinical.cpt_codes else ""
+        overcharge_threshold_percent = get_settings(db).overcharge_threshold_percent
         financial = run_cost_agent(
             billed_amount=state.clinical.billed_amount or 0.0,
             cpt=cpt,
             zip_code=state.clinical.patient_zip or "",
             db=db,
+            overcharge_threshold_percent=overcharge_threshold_percent,
         )
     return {"financial": financial}
 
@@ -183,9 +185,18 @@ def alternative_node(state: AgenticPAState) -> dict:
         if mapping is None:
             trace_updates.append({"agent": "alternative_mapper", "fired": False})
         else:
+            # cms_benchmark_rate is only populated when the Cost agent also
+            # ran ("cost" in relevant_agents); fall back to the actual billed
+            # amount so a savings figure is still surfaced when "alternative"
+            # fired without "cost" (e.g. a query only about alternatives).
+            baseline = (
+                state.financial.cms_benchmark_rate
+                if state.financial.cms_benchmark_rate is not None
+                else state.clinical.billed_amount
+            )
             savings = None
-            if mapping["alternative_cost"] is not None and state.financial.cms_benchmark_rate is not None:
-                savings = round(state.financial.cms_benchmark_rate - mapping["alternative_cost"], 2)
+            if mapping["alternative_cost"] is not None and baseline is not None:
+                savings = round(baseline - mapping["alternative_cost"], 2)
             financial = state.financial.model_copy(
                 update={
                     "alternative_therapy_suggestion": mapping["description"],
@@ -225,22 +236,28 @@ def human_review_node(state: AgenticPAState) -> dict:
     action = payload.get("action")
 
     if action == "clarify":
+        question = payload.get("question", "")
         routing = state.routing.model_copy(
             update={
-                "interrupt_reason": f"Awaiting Provider Response: {payload.get('question', '')}",
+                "interrupt_reason": f"Awaiting Provider Response: {question}",
                 "case_status": "awaiting_provider_response",
             }
         )
-        return {"routing": routing}
+        audit = state.audit.model_copy(update=_trace(state, "reviewer", action=action, question=question))
+        return {"routing": routing, "audit": audit}
 
     if action == "provider_responded":
+        original_reason = payload.get("original_reason") or state.routing.interrupt_reason
         routing = state.routing.model_copy(
             update={
-                "interrupt_reason": payload.get("original_reason") or state.routing.interrupt_reason,
+                "interrupt_reason": original_reason,
                 "case_status": "needs_reviewer_decision",
             }
         )
-        return {"routing": routing}
+        audit = state.audit.model_copy(
+            update=_trace(state, "reviewer", action=action, response=payload.get("response"))
+        )
+        return {"routing": routing, "audit": audit}
 
     # approve / modify / deny
     diffs = payload.get("diffs") or {}

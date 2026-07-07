@@ -1,0 +1,370 @@
+<title>AgenticPA — Layered Architecture</title>
+<style>
+  :root{
+    --bg:#eef1f4;
+    --panel:#ffffff;
+    --panel-2:#f7f9fb;
+    --ink:#141a20;
+    --ink-dim:#4a5560;
+    --line:#c9d2da;
+    --line-soft:#dde3e9;
+    --aws:#ec7211;
+    --shadow: 0 1px 2px rgba(20,26,32,.06), 0 8px 24px rgba(20,26,32,.05);
+    --nginx:#009639;   --nginx-2:#00b341;
+    --react:#087ea4;   --react-2:#61dafb;
+    --python:#3776ab;  --python-2:#ffd43b;
+    --pg:#336791;      --pg-2:#00758f;
+    --redis:#a41e11;   --redis-2:#dc382d;
+    --qdrant:#dc244c;  --qdrant-2:#ff6b6b;
+    --gemini:#8e5cf7;  --gemini-2:#4285f4;
+    --docker:#2496ed;  --docker-2:#0db7ed;
+    --net:#5b6b79;     --net-2:#3d4a55;
+    --folder:#f0a020;  --folder-2:#f7c04a;
+    --log:#6b7280;     --log-2:#8f98a3;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#0d1216; --panel:#161d23; --panel-2:#131a1f; --ink:#e7edf2; --ink-dim:#93a1ac;
+      --line:#2b353d; --line-soft:#212a31; --aws:#f0894a;
+      --shadow: 0 1px 2px rgba(0,0,0,.4), 0 8px 24px rgba(0,0,0,.35);
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#0d1216; --panel:#161d23; --panel-2:#131a1f; --ink:#e7edf2; --ink-dim:#93a1ac;
+    --line:#2b353d; --line-soft:#212a31; --aws:#f0894a;
+    --shadow: 0 1px 2px rgba(0,0,0,.4), 0 8px 24px rgba(0,0,0,.35);
+  }
+  :root[data-theme="light"]{
+    --bg:#eef1f4; --panel:#ffffff; --panel-2:#f7f9fb; --ink:#141a20; --ink-dim:#4a5560;
+    --line:#c9d2da; --line-soft:#dde3e9; --aws:#ec7211;
+    --shadow: 0 1px 2px rgba(20,26,32,.06), 0 8px 24px rgba(20,26,32,.05);
+  }
+
+  *{box-sizing:border-box;}
+  body{
+    margin:0; background:var(--bg); color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  .mono{ font-family:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace; }
+
+  .page{ max-width:1200px; margin:0 auto; padding:40px 24px 72px; }
+
+  header.top{
+    display:flex; flex-direction:column; gap:6px;
+    margin-bottom:32px; padding-bottom:20px; border-bottom:1px solid var(--line-soft);
+  }
+  .eyebrow{ font-size:12px; letter-spacing:.09em; text-transform:uppercase; color:var(--aws); font-weight:700; }
+  h1{ font-size:26px; margin:2px 0 0; letter-spacing:-.01em; }
+  .sub{ color:var(--ink-dim); font-size:14.5px; max-width:74ch; line-height:1.5; }
+
+  .canvas{
+    background:var(--panel);
+    border:1px solid var(--line-soft);
+    border-radius:20px;
+    box-shadow:var(--shadow);
+    padding:36px 36px 28px;
+    overflow-x:auto;
+  }
+  .rows{ min-width:960px; display:flex; flex-direction:column; align-items:center; }
+
+  /* ---- icon badge node: icon-first, label below, like real vendor diagrams ---- */
+  .stack{ display:flex; flex-direction:column; align-items:center; gap:6px; width:104px; text-align:center; }
+  .badge{
+    width:52px; height:52px; border-radius:13px;
+    display:flex; align-items:center; justify-content:center;
+    box-shadow:0 2px 6px rgba(0,0,0,.18), inset 0 1px 0 rgba(255,255,255,.15);
+    flex:none;
+  }
+  .badge svg{ width:28px; height:28px; }
+  .stack .n{ font-size:11.5px; font-weight:700; line-height:1.25; }
+  .stack .d{ font-size:9.5px; color:var(--ink-dim); line-height:1.3; }
+
+  .connector{ display:flex; flex-direction:column; align-items:center; gap:2px; }
+  .connector .vline{
+    width:2px; height:30px;
+    background:repeating-linear-gradient(var(--line) 0 6px, transparent 6px 10px);
+    position:relative;
+  }
+  .connector .vline.arrow-down::after{
+    content:""; position:absolute; left:50%; bottom:-1px; transform:translateX(-50%);
+    border-left:5px solid transparent; border-right:5px solid transparent; border-top:7px solid var(--line);
+  }
+  .connector .clabel{ font-size:10.5px; color:var(--ink-dim); }
+
+  /* ---- flat solid layer panel (no dashed mermaid nesting) ---- */
+  .layer{
+    width:100%; background:var(--panel-2); border:1px solid var(--line-soft);
+    border-radius:16px; padding:20px 24px 22px; margin-top:0;
+  }
+  .layer-head{ display:flex; align-items:center; gap:8px; margin-bottom:18px; }
+  .layer-head .ic{ width:20px; height:20px; }
+  .layer-head .t{ font-size:12px; font-weight:800; letter-spacing:.05em; text-transform:uppercase; color:var(--ink); }
+  .layer-head .sub{ font-size:10.5px; color:var(--ink-dim); font-weight:500; text-transform:none; letter-spacing:0; margin-left:2px; }
+
+  .row-split{ display:grid; grid-template-columns:1fr 1px 1.7fr; gap:0; align-items:stretch; }
+  .col{ padding:4px 20px; }
+  .col-divider{ background:var(--line-soft); }
+  .col-title{ font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:.05em; color:var(--ink-dim); margin-bottom:14px; text-align:center; }
+  .col-row{ display:flex; justify-content:center; gap:26px; flex-wrap:wrap; }
+
+  .pipe-row{ display:flex; flex-wrap:wrap; align-items:flex-start; justify-content:center; gap:4px; margin-top:16px; }
+  .pipe-arrow{ color:var(--ink-dim); font-size:13px; align-self:center; padding:0 1px; }
+  .pipe-fork{ display:flex; flex-direction:column; align-items:center; gap:6px; }
+  .pipe-fork .fork-pair{ display:flex; gap:16px; }
+
+  .pipe-badge{ width:38px; height:38px; border-radius:10px; box-shadow:0 2px 6px rgba(0,0,0,.16); }
+  .pipe-badge svg{ width:19px; height:19px; }
+  .pipe-note{ font-size:10.5px; color:var(--ink-dim); line-height:1.5; margin-top:14px; text-align:center; max-width:64ch; margin-left:auto; margin-right:auto; }
+
+  .hline{ display:flex; align-items:center; justify-content:center; gap:8px; margin:14px 0; color:var(--ink-dim); font-size:10.5px; }
+  .hline .seg{ height:2px; width:64px; background:repeating-linear-gradient(90deg, var(--line) 0 6px, transparent 6px 10px); }
+
+  .side-by-side{ display:flex; gap:18px; width:100%; align-items:flex-start; }
+  .side-by-side > .layer{ flex:1; }
+
+  .ext-row{ display:flex; justify-content:center; gap:56px; margin-top:26px; }
+  .ext-branch{ display:flex; flex-direction:column; align-items:center; gap:6px; }
+  .ext-caption{ font-size:10px; color:var(--ink-dim); text-align:center; max-width:170px; line-height:1.4; }
+
+  .legend{ margin-top:34px; display:grid; grid-template-columns:repeat(auto-fit, minmax(230px,1fr)); gap:16px; }
+  .legend .card{ background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:16px 18px; box-shadow:var(--shadow); }
+  .legend h3{ margin:0 0 8px; font-size:12.5px; text-transform:uppercase; letter-spacing:.06em; color:var(--ink-dim); }
+  .legend ul{ margin:0; padding:0; list-style:none; display:flex; flex-direction:column; gap:6px; }
+  .legend li{ font-size:12.5px; display:flex; gap:8px; align-items:baseline; line-height:1.4; }
+  .legend li .k{ font-weight:700; color:var(--ink); flex:none; }
+  .legend code{ font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; background:color-mix(in srgb, var(--ink) 90%, transparent); color:var(--panel); padding:1px 6px; border-radius:5px; font-size:11px; }
+
+  .swatch{ display:inline-block; width:9px; height:9px; border-radius:3px; margin-right:5px; vertical-align:1px; }
+
+  footer.note{ margin-top:28px; font-size:11.5px; color:var(--ink-dim); border-top:1px solid var(--line-soft); padding-top:16px; }
+</style>
+
+<svg width="0" height="0" style="position:absolute">
+  <defs>
+    <symbol id="i-user" viewBox="0 0 24 24"><path fill="#fff" d="M12 12.5a5 5 0 1 0 0-10 5 5 0 0 0 0 10Zm0 2.2c-4.4 0-8 2.2-8 5v1.3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-1.3c0-2.8-3.6-5-8-5Z"/></symbol>
+    <symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="#fff" stroke-width="1.7"/><path fill="none" stroke="#fff" stroke-width="1.5" d="M3 12h18M12 3c3.2 3.2 3.2 14.8 0 18M12 3c-3.2 3.2-3.2 14.8 0 18M4.2 7.5h15.6M4.2 16.5h15.6"/></symbol>
+    <symbol id="i-nginx" viewBox="0 0 24 24"><path fill="none" stroke="#fff" stroke-width="1.7" stroke-linejoin="round" d="M12 2.5 21 7.5v9L12 21.5 3 16.5v-9L12 2.5Z"/><path fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round" d="M8 7.5v9L16 7.5v9"/></symbol>
+    <symbol id="i-react" viewBox="0 0 24 24"><circle cx="12" cy="12" r="2.1" fill="#fff"/><ellipse cx="12" cy="12" rx="10" ry="4.1" fill="none" stroke="#fff" stroke-width="1.4"/><ellipse cx="12" cy="12" rx="10" ry="4.1" fill="none" stroke="#fff" stroke-width="1.4" transform="rotate(60 12 12)"/><ellipse cx="12" cy="12" rx="10" ry="4.1" fill="none" stroke="#fff" stroke-width="1.4" transform="rotate(120 12 12)"/></symbol>
+    <symbol id="i-fastapi" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9.5" fill="none" stroke="#fff" stroke-width="1.6"/><path fill="none" stroke="#fff" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" d="M13.2 3.3 6.8 13h5l-1 7.7L17.2 11h-5l1-7.7Z"/></symbol>
+    <symbol id="i-graph" viewBox="0 0 24 24"><circle cx="5" cy="6" r="2.2" fill="#fff"/><circle cx="19" cy="6" r="2.2" fill="#fff"/><circle cx="12" cy="12" r="2.2" fill="#fff"/><circle cx="5" cy="18" r="2.2" fill="#fff"/><circle cx="19" cy="18" r="2.2" fill="#fff"/><path stroke="#fff" stroke-width="1.4" d="M6.7 7.2 10.4 10.8M17.3 7.2 13.6 10.8M6.7 16.8 10.4 13.2M17.3 16.8 13.6 13.2"/></symbol>
+    <symbol id="i-db" viewBox="0 0 24 24"><ellipse cx="12" cy="6" rx="8" ry="3" fill="none" stroke="#fff" stroke-width="1.6"/><path fill="none" stroke="#fff" stroke-width="1.6" d="M4 6v12c0 1.7 3.6 3 8 3s8-1.3 8-3V6"/><path fill="none" stroke="#fff" stroke-width="1.6" d="M4 12.5c0 1.7 3.6 3 8 3s8-1.3 8-3"/></symbol>
+    <symbol id="i-redis" viewBox="0 0 24 24"><path fill="none" stroke="#fff" stroke-width="1.6" stroke-linejoin="round" d="M3.5 8.2 12 3.5l8.5 4.7L12 12.9l-8.5-4.7Z"/><path fill="none" stroke="#fff" stroke-width="1.6" d="M3.5 8.2v7.6L12 20.5l8.5-4.7V8.2"/><path fill="none" stroke="#fff" stroke-width="1.6" d="M3.5 12 12 16.7l8.5-4.7"/></symbol>
+    <symbol id="i-vector" viewBox="0 0 24 24"><circle cx="5.5" cy="5.5" r="2.3" fill="#fff"/><circle cx="18.5" cy="7" r="2.3" fill="#fff"/><circle cx="7.5" cy="18.5" r="2.3" fill="#fff"/><circle cx="17.5" cy="17" r="2.3" fill="#fff"/><path stroke="#fff" stroke-width="1.2" d="M7.5 6.3 16.6 7M6.8 7.6 7.4 16.5M17.9 9 17.6 15M9.4 18.7 15.6 17.3"/></symbol>
+    <symbol id="i-folder" viewBox="0 0 24 24"><path fill="#fff" d="M3 6.2A1.2 1.2 0 0 1 4.2 5H10l1.9 2.1H19.8A1.2 1.2 0 0 1 21 8.3V17.8A1.2 1.2 0 0 1 19.8 19H4.2A1.2 1.2 0 0 1 3 17.8V6.2Z"/></symbol>
+    <symbol id="i-brain" viewBox="0 0 24 24"><path fill="none" stroke="#fff" stroke-width="1.6" stroke-linejoin="round" d="M9.2 4.3a3 3 0 0 0-3 3v.3A3 3 0 0 0 4.6 10.3a3 3 0 0 0 1 5.6 3 3 0 0 0 3 3.4h.6V4.3Z"/><path fill="none" stroke="#fff" stroke-width="1.6" stroke-linejoin="round" d="M14.8 4.3a3 3 0 0 1 3 3v.3a3 3 0 0 1 1.6 2.7 3 3 0 0 1-1 5.6 3 3 0 0 1-3 3.4h-.6V4.3Z"/></symbol>
+    <symbol id="i-docker" viewBox="0 0 24 24"><path fill="#fff" d="M2.5 12.8c1.4 3 4.6 4.7 8.9 4.7 5.7 0 9.4-3 10.6-7.4-.8.4-1.7.5-2.6.4-.4-1.7-1.9-2.8-1.9-2.8s-1.5 1.5-1.1 3.2c-.6.3-1.7.5-3.1.5H2.5Z"/><rect x="4.6" y="9.3" width="2.3" height="2.1" fill="#fff"/><rect x="7.5" y="9.3" width="2.3" height="2.1" fill="#fff"/><rect x="10.4" y="9.3" width="2.3" height="2.1" fill="#fff"/><rect x="7.5" y="6.6" width="2.3" height="2.1" fill="#fff"/><rect x="10.4" y="6.6" width="2.3" height="2.1" fill="#fff"/></symbol>
+    <symbol id="i-shield" viewBox="0 0 24 24"><path fill="none" stroke="#fff" stroke-width="1.7" stroke-linejoin="round" d="M12 2.8 19.5 5.5v6.2c0 4.7-3.1 7.8-7.5 8.9-4.4-1.1-7.5-4.2-7.5-8.9V5.5L12 2.8Z"/><path stroke="#fff" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" fill="none" d="m8.5 12.3 2.4 2.4 4.6-4.9"/></symbol>
+    <symbol id="i-log" viewBox="0 0 24 24"><rect x="3.8" y="3" width="16.4" height="18" rx="1.6" fill="none" stroke="#fff" stroke-width="1.6"/><path stroke="#fff" stroke-width="1.5" stroke-linecap="round" d="M7.3 7.8h9.4M7.3 12h9.4M7.3 16.2h5.6"/></symbol>
+    <symbol id="i-server" viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="17" height="7" rx="1.4" fill="none" stroke="#fff" stroke-width="1.6"/><rect x="3.5" y="13.5" width="17" height="7" rx="1.4" fill="none" stroke="#fff" stroke-width="1.6"/><circle cx="7" cy="7" r="1" fill="#fff"/><circle cx="7" cy="17" r="1" fill="#fff"/></symbol>
+  </defs>
+</svg>
+
+<div class="page">
+
+  <header class="top">
+    <span class="eyebrow">AgenticPA · System Architecture</span>
+    <h1>Deployment &amp; Request-Flow Diagram</h1>
+    <p class="sub">
+      One EC2 host running five sibling containers via <code class="mono">docker compose</code>. Front End and
+      Business Logic sit in the same Application Layer; the LangGraph agent pipeline runs inside the FastAPI
+      container and talks to Postgres, Redis, and Qdrant directly on the docker bridge network.
+    </p>
+  </header>
+
+  <div class="canvas">
+    <div class="rows">
+
+      <!-- user -->
+      <div class="stack">
+        <div class="badge" style="background:linear-gradient(160deg,var(--net-2),var(--net))"><svg><use href="#i-user"/></svg></div>
+        <div class="n">Patient / Reviewer / Admin</div>
+        <div class="d">browser · demo login</div>
+      </div>
+      <div class="connector"><div class="vline arrow-down"></div><div class="clabel">HTTPS</div></div>
+
+      <div class="stack">
+        <div class="badge" style="background:linear-gradient(160deg,var(--net-2),var(--net))"><svg><use href="#i-globe"/></svg></div>
+        <div class="n">Internet</div>
+        <div class="d">public IP / DNS → EC2</div>
+      </div>
+      <div class="connector"><div class="vline arrow-down"></div></div>
+
+      <div class="stack">
+        <div class="badge" style="background:linear-gradient(160deg,#f7a35f,var(--aws))"><svg><use href="#i-shield"/></svg></div>
+        <div class="n">Security Group</div>
+        <div class="d mono">80 · 443 · 22</div>
+      </div>
+      <div class="connector"><div class="vline arrow-down"></div></div>
+
+      <!-- EC2 -->
+      <div class="layer" style="width:100%;">
+        <div class="layer-head">
+          <svg class="ic" style="color:var(--aws)"><use href="#i-server"/></svg>
+          <span class="t" style="color:var(--aws)">EC2 instance</span>
+          <span class="sub mono">t3.large · Ubuntu 22.04 · docker compose bridge network</span>
+        </div>
+
+        <!-- APPLICATION LAYER -->
+        <div class="layer" style="background:var(--panel); margin-bottom:16px;">
+          <div class="layer-head">
+            <svg class="ic" style="color:var(--docker)"><use href="#i-docker"/></svg>
+            <span class="t">Application Layer</span>
+          </div>
+
+          <div class="row-split">
+            <div class="col">
+              <div class="col-title">Front End</div>
+              <div class="col-row">
+                <div class="stack">
+                  <div class="badge" style="background:linear-gradient(160deg,var(--nginx-2),var(--nginx))"><svg><use href="#i-nginx"/></svg></div>
+                  <div class="n">nginx</div>
+                  <div class="d mono">1.27-alpine · :80</div>
+                </div>
+                <div class="stack">
+                  <div class="badge" style="background:linear-gradient(160deg,var(--react-2),var(--react))"><svg><use href="#i-react"/></svg></div>
+                  <div class="n">React (Vite)</div>
+                  <div class="d">static build</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="col-divider"></div>
+
+            <div class="col">
+              <div class="col-title">Business Logic · Orchestration</div>
+              <div class="col-row">
+                <div class="stack">
+                  <div class="badge" style="background:linear-gradient(160deg,var(--python-2),var(--python))"><svg><use href="#i-fastapi"/></svg></div>
+                  <div class="n">FastAPI</div>
+                  <div class="d mono">:8000 · uvicorn</div>
+                </div>
+                <div class="stack">
+                  <div class="badge" style="background:linear-gradient(160deg,#8f8bf0,#4340c7)"><svg><use href="#i-graph"/></svg></div>
+                  <div class="n">LangGraph</div>
+                  <div class="d">agent state machine</div>
+                </div>
+              </div>
+
+              <div class="pipe-row mono">
+                <div class="stack" style="width:auto"><div class="badge pipe-badge" style="background:linear-gradient(160deg,#8f8bf0,#4340c7)"><svg><use href="#i-graph"/></svg></div><div class="n" style="font-size:10px">intake</div></div>
+                <div class="pipe-arrow">→</div>
+                <div class="pipe-fork">
+                  <div class="fork-pair">
+                    <div class="stack" style="width:auto"><div class="badge pipe-badge" style="background:linear-gradient(160deg,#3fbfa2,#0e7c66)"><svg><use href="#i-graph"/></svg></div><div class="n" style="font-size:10px">cost</div></div>
+                    <div class="stack" style="width:auto"><div class="badge pipe-badge" style="background:linear-gradient(160deg,#3fbfa2,#0e7c66)"><svg><use href="#i-graph"/></svg></div><div class="n" style="font-size:10px">rag</div></div>
+                  </div>
+                </div>
+                <div class="pipe-arrow">→</div>
+                <div class="stack" style="width:auto"><div class="badge pipe-badge" style="background:linear-gradient(160deg,#b6bcc4,#8a929c)"><svg><use href="#i-graph"/></svg></div><div class="n" style="font-size:10px">alternative</div></div>
+                <div class="pipe-arrow">→</div>
+                <div class="stack" style="width:auto"><div class="badge pipe-badge" style="background:linear-gradient(160deg,#3fbfa2,#0e7c66)"><svg><use href="#i-graph"/></svg></div><div class="n" style="font-size:10px">peer_review</div></div>
+                <div class="pipe-arrow">→</div>
+                <div class="stack" style="width:auto"><div class="badge pipe-badge" style="background:linear-gradient(160deg,#f0685a,#e00000)"><svg><use href="#i-graph"/></svg></div><div class="n" style="font-size:10px">human_review*</div></div>
+                <div class="pipe-arrow">→</div>
+                <div class="stack" style="width:auto"><div class="badge pipe-badge" style="background:linear-gradient(160deg,#8f8bf0,#4340c7)"><svg><use href="#i-graph"/></svg></div><div class="n" style="font-size:10px">summarizer</div></div>
+              </div>
+              <div class="pipe-note">
+                <b>cost</b> / <b>rag</b> fan out in parallel. <b>peer_review</b>'s deterministic hard-gates decide
+                <span class="mono">needs_human_review</span> before any LLM call runs. <b>human_review*</b> is a real
+                <span class="mono">interrupt()</span> checkpointed to Postgres.
+              </div>
+            </div>
+          </div>
+        </div><!-- /application layer -->
+
+        <div class="hline"><div class="seg"></div>reads / writes<div class="seg"></div></div>
+
+        <!-- DATA LAYER -->
+        <div class="layer" style="background:var(--panel);">
+          <div class="layer-head">
+            <svg class="ic" style="color:var(--pg)"><use href="#i-db"/></svg>
+            <span class="t">Data Layer</span>
+          </div>
+          <div class="col-row" style="gap:34px;">
+            <div class="stack">
+              <div class="badge" style="background:linear-gradient(160deg,var(--pg-2),var(--pg))"><svg><use href="#i-db"/></svg></div>
+              <div class="n">postgres</div>
+              <div class="d">cases · audit_logs · checkpoints</div>
+              <div class="d mono">16-alpine · :5432</div>
+            </div>
+            <div class="stack">
+              <div class="badge" style="background:linear-gradient(160deg,var(--redis-2),var(--redis))"><svg><use href="#i-redis"/></svg></div>
+              <div class="n">redis</div>
+              <div class="d">cache / broker</div>
+              <div class="d mono">7-alpine · :6379</div>
+            </div>
+            <div class="stack">
+              <div class="badge" style="background:linear-gradient(160deg,var(--qdrant-2),var(--qdrant))"><svg><use href="#i-vector"/></svg></div>
+              <div class="n">qdrant</div>
+              <div class="d">policy embeddings · RAG</div>
+              <div class="d mono">:6333</div>
+            </div>
+            <div class="stack">
+              <div class="badge" style="background:linear-gradient(160deg,var(--folder-2),var(--folder))"><svg><use href="#i-folder"/></svg></div>
+              <div class="n">aarp_policies</div>
+              <div class="d">bind mount, read-only</div>
+              <div class="d mono">:ro</div>
+            </div>
+          </div>
+        </div><!-- /data layer -->
+
+      </div><!-- /EC2 layer -->
+
+      <div class="ext-row">
+        <div class="ext-branch">
+          <div class="connector"><div class="vline arrow-down"></div></div>
+          <div class="stack">
+            <div class="badge" style="background:linear-gradient(160deg,var(--gemini-2),var(--gemini))"><svg><use href="#i-brain"/></svg></div>
+            <div class="n">Gemini API</div>
+            <div class="d mono">LLM_PROVIDER=gemini</div>
+          </div>
+          <div class="ext-caption">outbound HTTPS from backend only — intake / summarizer / rationale</div>
+        </div>
+        <div class="ext-branch">
+          <div class="connector"><div class="vline arrow-down"></div></div>
+          <div class="stack">
+            <div class="badge" style="background:linear-gradient(160deg,var(--log-2),var(--log))"><svg><use href="#i-log"/></svg></div>
+            <div class="n">docker logs</div>
+            <div class="d mono">GET /health</div>
+          </div>
+          <div class="ext-caption">no metrics dashboard / alerting yet — honest gap, not a designed layer</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="legend">
+    <div class="card">
+      <h3>Why two columns, one layer</h3>
+      <ul>
+        <li>Front End and Business Logic are separate containers on the same docker bridge network, not separate hosts</li>
+        <li>nginx only proxies static assets; every API call goes straight to FastAPI on <code>:8000</code></li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>Pipeline node colors</h3>
+      <ul>
+        <li><span class="swatch" style="background:#4340c7"></span>LLM call — Gemini-backed (intake, summarizer)</li>
+        <li><span class="swatch" style="background:#0e7c66"></span>deterministic gate (cost, rag, peer_review)</li>
+        <li><span class="swatch" style="background:#8a929c"></span>demo-mocked join node (alternative)</li>
+        <li><span class="swatch" style="background:#e00000"></span>real LangGraph <code>interrupt()</code> (human_review)</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>What's not shown</h3>
+      <ul>
+        <li>No ALB / CloudFront / Route 53 — instance reached directly by IP or A record</li>
+        <li>No managed RDS / ElastiCache — Postgres and Redis are the containers themselves, on EBS-backed volumes</li>
+        <li>No autoscaling — one instance, one compose stack</li>
+      </ul>
+    </div>
+  </div>
+
+  <footer class="note">
+    Source of truth: <code class="mono">docker-compose.yml</code>, <code class="mono">backend/app/core/graph.py</code>,
+    <code class="mono">core/case_runner.py</code>. Redraw if compose services, ports, or LangGraph node order change.
+  </footer>
+
+</div>

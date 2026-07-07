@@ -1,0 +1,610 @@
+<title>AgenticPA — EC2 Deployment Architecture</title>
+<style>
+  :root{
+    --bg:#eef1f4;
+    --panel:#ffffff;
+    --panel-2:#f7f9fb;
+    --ink:#141a20;
+    --ink-dim:#4a5560;
+    --line:#c9d2da;
+    --line-soft:#dde3e9;
+    --aws:#ec7211;
+    --aws-dim:#f4a35f;
+    --vpc:#3b5bfd;
+    --docker:#2b6cb0;
+    --pg:#336791;
+    --redis:#c0392b;
+    --qdrant:#7c3aed;
+    --nginx:#2f9e44;
+    --external:#6b7280;
+    --good:#0e7c66;
+    --code-bg:#0f1620;
+    --code-ink:#d7e2ec;
+    --shadow: 0 1px 2px rgba(20,26,32,.06), 0 8px 24px rgba(20,26,32,.05);
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#0d1216;
+      --panel:#161d23;
+      --panel-2:#131a1f;
+      --ink:#e7edf2;
+      --ink-dim:#93a1ac;
+      --line:#2b353d;
+      --line-soft:#212a31;
+      --aws:#f0894a;
+      --aws-dim:#c96a2b;
+      --vpc:#7488ff;
+      --docker:#5b9bd9;
+      --pg:#6ba3c9;
+      --redis:#e0685a;
+      --qdrant:#a684f2;
+      --nginx:#5cc270;
+      --external:#8b96a0;
+      --good:#3fbfa2;
+      --code-bg:#0a0f13;
+      --code-ink:#c6d4de;
+      --shadow: 0 1px 2px rgba(0,0,0,.4), 0 8px 24px rgba(0,0,0,.35);
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#0d1216; --panel:#161d23; --panel-2:#131a1f; --ink:#e7edf2; --ink-dim:#93a1ac;
+    --line:#2b353d; --line-soft:#212a31; --aws:#f0894a; --aws-dim:#c96a2b; --vpc:#7488ff;
+    --docker:#5b9bd9; --pg:#6ba3c9; --redis:#e0685a; --qdrant:#a684f2; --nginx:#5cc270;
+    --external:#8b96a0; --good:#3fbfa2; --code-bg:#0a0f13; --code-ink:#c6d4de;
+    --shadow: 0 1px 2px rgba(0,0,0,.4), 0 8px 24px rgba(0,0,0,.35);
+  }
+  :root[data-theme="light"]{
+    --bg:#eef1f4; --panel:#ffffff; --panel-2:#f7f9fb; --ink:#141a20; --ink-dim:#4a5560;
+    --line:#c9d2da; --line-soft:#dde3e9; --aws:#ec7211; --aws-dim:#f4a35f; --vpc:#3b5bfd;
+    --docker:#2b6cb0; --pg:#336791; --redis:#c0392b; --qdrant:#7c3aed; --nginx:#2f9e44;
+    --external:#6b7280; --good:#0e7c66; --code-bg:#0f1620; --code-ink:#d7e2ec;
+    --shadow: 0 1px 2px rgba(20,26,32,.06), 0 8px 24px rgba(20,26,32,.05);
+  }
+
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  .mono{ font-family:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace; }
+
+  .page{
+    max-width:1180px;
+    margin:0 auto;
+    padding:40px 24px 72px;
+  }
+
+  header.top{
+    display:flex;
+    flex-direction:column;
+    gap:6px;
+    margin-bottom:28px;
+    padding-bottom:20px;
+    border-bottom:1px solid var(--line-soft);
+  }
+  .eyebrow{
+    font-size:12px;
+    letter-spacing:.09em;
+    text-transform:uppercase;
+    color:var(--aws);
+    font-weight:700;
+  }
+  h1{
+    font-size:26px;
+    margin:2px 0 0;
+    letter-spacing:-.01em;
+    text-wrap:balance;
+  }
+  .sub{
+    color:var(--ink-dim);
+    font-size:14.5px;
+    max-width:70ch;
+    line-height:1.5;
+  }
+
+  .diagram-scroll{
+    overflow-x:auto;
+    padding-bottom:4px;
+  }
+  .diagram{
+    min-width:920px;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:0;
+  }
+
+  /* generic node */
+  .node{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:10px;
+    box-shadow:var(--shadow);
+    padding:12px 18px;
+    display:flex;
+    align-items:center;
+    gap:10px;
+  }
+  .node .icon{ flex:none; width:22px; height:22px; color:var(--ink-dim); }
+  .node .label{ font-size:13.5px; font-weight:600; }
+  .node .meta{ font-size:11.5px; color:var(--ink-dim); }
+
+  .arrow-v{
+    width:2px;
+    height:26px;
+    background:repeating-linear-gradient(var(--line) 0 6px, transparent 6px 10px);
+    position:relative;
+  }
+  .arrow-v::after{
+    content:"";
+    position:absolute; left:50%; bottom:-1px; transform:translateX(-50%);
+    border-left:5px solid transparent; border-right:5px solid transparent;
+    border-top:7px solid var(--line);
+  }
+  .arrow-label{
+    font-size:11px;
+    color:var(--ink-dim);
+    text-align:center;
+    margin:2px 0;
+  }
+
+  /* boundary boxes */
+  .boundary{
+    position:relative;
+    border:1.5px dashed var(--line);
+    border-radius:16px;
+    padding:34px 26px 22px;
+    width:100%;
+  }
+  .boundary > .tag{
+    position:absolute;
+    top:-11px;
+    left:22px;
+    background:var(--bg);
+    padding:0 8px;
+    font-size:11px;
+    font-weight:700;
+    letter-spacing:.06em;
+    text-transform:uppercase;
+    display:flex;
+    align-items:center;
+    gap:6px;
+  }
+  .boundary.vpc{ border-color:var(--vpc); }
+  .boundary.vpc > .tag{ color:var(--vpc); }
+  .boundary.sg{ border-color:var(--aws); background:color-mix(in srgb, var(--aws) 5%, transparent); }
+  .boundary.sg > .tag{ color:var(--aws); }
+  .boundary.ec2{
+    border-style:solid;
+    border-color:var(--line);
+    background:var(--panel-2);
+  }
+  .boundary.ec2 > .tag{ color:var(--ink); }
+  .boundary.docker{
+    border-color:var(--docker);
+    border-style:solid;
+    background:color-mix(in srgb, var(--docker) 6%, var(--panel));
+  }
+  .boundary.docker > .tag{ color:var(--docker); }
+
+  .badge{
+    font-size:10px;
+    font-weight:700;
+    padding:2px 7px;
+    border-radius:99px;
+    letter-spacing:.03em;
+  }
+  .badge.aws{ background:color-mix(in srgb, var(--aws) 18%, transparent); color:var(--aws); }
+  .badge.good{ background:color-mix(in srgb, var(--good) 18%, transparent); color:var(--good); }
+
+  /* containers row */
+  .containers{
+    display:grid;
+    grid-template-columns:repeat(5, 1fr);
+    gap:14px;
+    margin-top:18px;
+  }
+  .container-card{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:10px;
+    padding:12px 12px 10px;
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+    box-shadow:var(--shadow);
+    min-height:150px;
+  }
+  .container-card .head{
+    display:flex;
+    align-items:center;
+    gap:8px;
+  }
+  .container-card .dot{
+    width:9px; height:9px; border-radius:50%; flex:none;
+  }
+  .container-card .svc{
+    font-size:13px;
+    font-weight:700;
+  }
+  .container-card .img{
+    font-size:10.5px;
+    color:var(--ink-dim);
+  }
+  .container-card .port{
+    margin-top:auto;
+    font-size:11px;
+    padding:3px 7px;
+    border-radius:6px;
+    background:var(--panel-2);
+    border:1px solid var(--line-soft);
+    width:fit-content;
+  }
+  .container-card .note{
+    font-size:10.5px;
+    color:var(--ink-dim);
+    line-height:1.4;
+  }
+
+  .flow-row{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:6px;
+    margin-top:10px;
+  }
+  .flow-arrow{ color:var(--ink-dim); font-size:13px; }
+
+  /* volumes row */
+  .volumes{
+    display:flex;
+    gap:12px;
+    margin-top:16px;
+    flex-wrap:wrap;
+    justify-content:center;
+  }
+  .vol{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:8px;
+    padding:7px 11px;
+    font-size:11.5px;
+  }
+  .vol .icon{ width:16px; height:16px; color:var(--ink-dim); flex:none; }
+
+  /* external row */
+  .external-row{
+    display:flex;
+    justify-content:center;
+    gap:40px;
+    margin-top:10px;
+    width:100%;
+  }
+  .ext-branch{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:4px;
+  }
+  .ext-node{
+    border:1px solid var(--line);
+    background:var(--panel);
+    border-radius:10px;
+    padding:10px 16px;
+    display:flex;
+    align-items:center;
+    gap:8px;
+    box-shadow:var(--shadow);
+  }
+  .ext-node .icon{ width:18px; height:18px; color:var(--external); }
+  .diag-arrow{
+    width:2px; height:22px;
+    background:repeating-linear-gradient(var(--external) 0 5px, transparent 5px 8px);
+  }
+
+  /* legend */
+  .legend{
+    margin-top:36px;
+    display:grid;
+    grid-template-columns:repeat(auto-fit, minmax(230px,1fr));
+    gap:16px;
+  }
+  .legend .card{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:12px;
+    padding:16px 18px;
+    box-shadow:var(--shadow);
+  }
+  .legend h3{
+    margin:0 0 8px;
+    font-size:12.5px;
+    text-transform:uppercase;
+    letter-spacing:.06em;
+    color:var(--ink-dim);
+  }
+  .legend ul{
+    margin:0; padding:0; list-style:none;
+    display:flex; flex-direction:column; gap:6px;
+  }
+  .legend li{
+    font-size:12.5px;
+    display:flex;
+    gap:8px;
+    align-items:baseline;
+    line-height:1.4;
+  }
+  .legend li .k{
+    font-weight:700;
+    color:var(--ink);
+    flex:none;
+  }
+  .legend code{
+    font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    background:var(--code-bg);
+    color:var(--code-ink);
+    padding:1px 6px;
+    border-radius:5px;
+    font-size:11px;
+  }
+
+  .cmd-block{
+    margin-top:28px;
+    background:var(--code-bg);
+    color:var(--code-ink);
+    border-radius:12px;
+    padding:18px 20px;
+    font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    font-size:12.5px;
+    line-height:1.7;
+    overflow-x:auto;
+    box-shadow:var(--shadow);
+  }
+  .cmd-block .h{
+    color:#8fa6b8;
+    font-size:11px;
+    text-transform:uppercase;
+    letter-spacing:.06em;
+    margin-bottom:10px;
+  }
+  .cmd-block .c1{ color:#7fd88a; }
+  .cmd-block .c2{ color:#f0c674; }
+  .cmd-block .comment{ color:#5c6b78; }
+
+  footer.note{
+    margin-top:28px;
+    font-size:11.5px;
+    color:var(--ink-dim);
+    border-top:1px solid var(--line-soft);
+    padding-top:16px;
+  }
+
+  @media (prefers-reduced-motion: no-preference){
+    .node, .container-card{ transition: transform .15s ease, box-shadow .15s ease; }
+  }
+</style>
+
+<svg width="0" height="0" style="position:absolute">
+  <defs>
+    <symbol id="i-user" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="1.6" d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm-7 9a7 7 0 0 1 14 0"/></symbol>
+    <symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="1.6"/><path fill="none" stroke="currentColor" stroke-width="1.6" d="M3.5 12h17M12 3.5c3 3 3 14 0 17M12 3.5c-3 3-3 14 0 17"/></symbol>
+    <symbol id="i-gateway" viewBox="0 0 24 24"><rect x="4" y="9" width="16" height="8" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.6"/><path fill="none" stroke="currentColor" stroke-width="1.6" d="M8 9V6.5a4 4 0 0 1 8 0V9"/></symbol>
+    <symbol id="i-shield" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" d="M12 3.5 19 6v6c0 4.5-3 7.5-7 8.5-4-1-7-4-7-8.5V6l7-2.5Z"/></symbol>
+    <symbol id="i-server" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="6.5" rx="1.2" fill="none" stroke="currentColor" stroke-width="1.6"/><rect x="4" y="13.5" width="16" height="6.5" rx="1.2" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="7.2" cy="7.25" r="0.9" fill="currentColor"/><circle cx="7.2" cy="16.75" r="0.9" fill="currentColor"/></symbol>
+    <symbol id="i-docker" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" d="M3 12.5c1.5 3 4.7 4.8 9 4.8 5.8 0 9.4-3 10.6-7.3-.8.4-1.7.5-2.6.4-.4-1.6-1.8-2.7-1.8-2.7s-1.5 1.4-1.1 3.1c-.5.2-1.6.5-3 .5H3Z"/><rect x="5.3" y="9" width="2.4" height="2.2" fill="currentColor"/><rect x="8.3" y="9" width="2.4" height="2.2" fill="currentColor"/><rect x="11.3" y="9" width="2.4" height="2.2" fill="currentColor"/><rect x="8.3" y="6.2" width="2.4" height="2.2" fill="currentColor"/><rect x="11.3" y="6.2" width="2.4" height="2.2" fill="currentColor"/></symbol>
+    <symbol id="i-db" viewBox="0 0 24 24"><ellipse cx="12" cy="6" rx="7.5" ry="2.8" fill="none" stroke="currentColor" stroke-width="1.6"/><path fill="none" stroke="currentColor" stroke-width="1.6" d="M4.5 6v12c0 1.5 3.4 2.8 7.5 2.8s7.5-1.3 7.5-2.8V6"/><path fill="none" stroke="currentColor" stroke-width="1.6" d="M4.5 12c0 1.5 3.4 2.8 7.5 2.8s7.5-1.3 7.5-2.8"/></symbol>
+    <symbol id="i-redis" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" d="M4 8.5 12 4l8 4.5-8 4.5-8-4.5Z"/><path fill="none" stroke="currentColor" stroke-width="1.6" d="M4 8.5v7L12 20l8-4.5v-7"/><path fill="none" stroke="currentColor" stroke-width="1.6" d="M4 12 12 16.5 20 12"/></symbol>
+    <symbol id="i-vector" viewBox="0 0 24 24"><circle cx="6" cy="6" r="2" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="18" cy="7.5" r="2" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="8" cy="18" r="2" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="17" cy="17" r="2" fill="none" stroke="currentColor" stroke-width="1.6"/><path fill="none" stroke="currentColor" stroke-width="1.3" d="M7.7 7.2 16.3 7M7.2 7.8 8 16.2M17.3 9 17 15M9.7 18.2 15.3 17"/></symbol>
+    <symbol id="i-nginx" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" d="m12 3 8 4.5v9L12 21l-8-4.5v-9L12 3Z"/><path fill="none" stroke="currentColor" stroke-width="1.5" d="M8.5 8v8L15.5 8v8"/></symbol>
+    <symbol id="i-brain" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" d="M9 4.5a3 3 0 0 0-3 3v.3A3 3 0 0 0 4.5 10.5a3 3 0 0 0 1 5.6A3 3 0 0 0 8.5 19.5H9V4.5Z"/><path fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" d="M15 4.5a3 3 0 0 1 3 3v.3a3 3 0 0 1 1.5 2.7 3 3 0 0 1-1 5.6 3 3 0 0 1-3 3.4H15V4.5Z"/></symbol>
+    <symbol id="i-disk" viewBox="0 0 24 24"><rect x="3.5" y="4" width="17" height="16" rx="2" fill="none" stroke="currentColor" stroke-width="1.6"/><path fill="none" stroke="currentColor" stroke-width="1.6" d="M3.5 15h17"/><circle cx="8" cy="17.5" r="1" fill="currentColor"/></symbol>
+    <symbol id="i-folder" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" d="M3.5 6.5a1 1 0 0 1 1-1H10l1.7 2H19a1 1 0 0 1 1 1V17a1 1 0 0 1-1 1H4.5a1 1 0 0 1-1-1v-10.5Z"/></symbol>
+    <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5.5" y="10.5" width="13" height="9" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.6"/><path fill="none" stroke="currentColor" stroke-width="1.6" d="M8 10.5V7.5a4 4 0 0 1 8 0v3"/></symbol>
+  </defs>
+</svg>
+
+<div class="page">
+
+  <header class="top">
+    <span class="eyebrow">AgenticPA · Infrastructure</span>
+    <h1>Single-EC2 Docker Compose Deployment</h1>
+    <p class="sub">
+      All five services from <code class="mono">docker-compose.yml</code> run as sibling containers
+      on one EC2 host — no ECS/EKS, no managed RDS. Traffic enters through the instance's
+      Security Group; only the Nginx-served frontend and FastAPI backend ports are reachable
+      from outside the box.
+    </p>
+  </header>
+
+  <div class="diagram-scroll">
+    <div class="diagram">
+
+      <!-- user -->
+      <div class="node">
+        <svg class="icon"><use href="#i-user"/></svg>
+        <div>
+          <div class="label">Patient / Reviewer / Admin</div>
+          <div class="meta">browser, role-based demo login</div>
+        </div>
+      </div>
+      <div class="arrow-v"></div>
+      <div class="arrow-label">HTTPS · public IP or DNS</div>
+
+      <div class="node">
+        <svg class="icon"><use href="#i-globe"/></svg>
+        <div>
+          <div class="label">Internet Gateway</div>
+          <div class="meta">attached to the VPC</div>
+        </div>
+      </div>
+      <div class="arrow-v"></div>
+
+      <!-- VPC -->
+      <div class="boundary vpc">
+        <span class="tag"><svg class="icon" style="width:13px;height:13px"><use href="#i-globe"/></svg>VPC · public subnet</span>
+
+        <!-- Security Group -->
+        <div class="boundary sg">
+          <span class="tag"><svg class="icon" style="width:13px;height:13px"><use href="#i-shield"/></svg>
+            Security Group <span class="badge aws mono">80 · 443 · 22</span>
+          </span>
+
+          <!-- EC2 -->
+          <div class="boundary ec2">
+            <span class="tag">
+              <svg class="icon" style="width:14px;height:14px"><use href="#i-server"/></svg>
+              EC2 instance <span class="badge aws mono">t3.large</span>
+              <span class="badge good">Ubuntu 22.04 + Docker Engine</span>
+            </span>
+
+            <!-- Docker network -->
+            <div class="boundary docker">
+              <span class="tag">
+                <svg class="icon" style="width:14px;height:14px"><use href="#i-docker"/></svg>
+                docker compose · bridge network
+              </span>
+
+              <div class="containers">
+
+                <div class="container-card">
+                  <div class="head">
+                    <span class="dot" style="background:var(--nginx)"></span>
+                    <svg class="icon" style="color:var(--nginx)"><use href="#i-nginx"/></svg>
+                    <span class="svc">frontend</span>
+                  </div>
+                  <div class="img mono">nginx:1.27-alpine</div>
+                  <div class="note">React (Vite build) static assets, served by nginx</div>
+                  <div class="port mono">:5173→80</div>
+                </div>
+
+                <div class="container-card">
+                  <div class="head">
+                    <span class="dot" style="background:var(--docker)"></span>
+                    <svg class="icon" style="color:var(--docker)"><use href="#i-server"/></svg>
+                    <span class="svc">backend</span>
+                  </div>
+                  <div class="img mono">python:3.11-slim</div>
+                  <div class="note">FastAPI + uvicorn, LangGraph agent orchestration</div>
+                  <div class="port mono">:8000→8000</div>
+                </div>
+
+                <div class="container-card">
+                  <div class="head">
+                    <span class="dot" style="background:var(--pg)"></span>
+                    <svg class="icon" style="color:var(--pg)"><use href="#i-db"/></svg>
+                    <span class="svc">postgres</span>
+                  </div>
+                  <div class="img mono">postgres:16-alpine</div>
+                  <div class="note">cases, audit_logs, LangGraph checkpoints</div>
+                  <div class="port mono">:5432</div>
+                </div>
+
+                <div class="container-card">
+                  <div class="head">
+                    <span class="dot" style="background:var(--redis)"></span>
+                    <svg class="icon" style="color:var(--redis)"><use href="#i-redis"/></svg>
+                    <span class="svc">redis</span>
+                  </div>
+                  <div class="img mono">redis:7-alpine</div>
+                  <div class="note">password-protected, cache / broker</div>
+                  <div class="port mono">:6379</div>
+                </div>
+
+                <div class="container-card">
+                  <div class="head">
+                    <span class="dot" style="background:var(--qdrant)"></span>
+                    <svg class="icon" style="color:var(--qdrant)"><use href="#i-vector"/></svg>
+                    <span class="svc">qdrant</span>
+                  </div>
+                  <div class="img mono">qdrant/qdrant:latest</div>
+                  <div class="note">policy embeddings, hybrid search for RAG</div>
+                  <div class="port mono">:6333</div>
+                </div>
+
+              </div>
+
+              <div class="flow-row mono" style="color:var(--ink-dim); font-size:11px;">
+                frontend <span class="flow-arrow">→</span> backend <span class="flow-arrow">→</span> postgres · redis · qdrant
+                <span style="margin-left:6px" class="badge good">depends_on: service_healthy</span>
+              </div>
+
+              <div class="volumes">
+                <div class="vol"><svg class="icon"><use href="#i-disk"/></svg><span class="mono">postgres_data</span> — EBS-backed named volume</div>
+                <div class="vol"><svg class="icon"><use href="#i-disk"/></svg><span class="mono">qdrant_data</span> — EBS-backed named volume</div>
+                <div class="vol"><svg class="icon"><use href="#i-folder"/></svg><span class="mono">./aarp_policies → /aarp_policies:ro</span> — bind mount</div>
+              </div>
+
+            </div><!-- /docker -->
+          </div><!-- /ec2 -->
+        </div><!-- /sg -->
+      </div><!-- /vpc -->
+
+      <div class="external-row">
+        <div class="ext-branch">
+          <div class="diag-arrow"></div>
+          <div class="ext-node">
+            <svg class="icon"><use href="#i-brain"/></svg>
+            <div>
+              <div class="label">Gemini API</div>
+              <div class="meta mono">LLM_PROVIDER=gemini</div>
+            </div>
+          </div>
+          <div class="meta" style="font-size:10.5px;color:var(--ink-dim)">outbound HTTPS from backend only</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="cmd-block">
+    <div class="h">First deploy · on the EC2 host</div>
+    <div><span class="comment"># clone + configure</span></div>
+    <div><span class="c1">git</span> clone &lt;repo&gt; agentic-pa &amp;&amp; <span class="c1">cd</span> agentic-pa</div>
+    <div><span class="c1">cp</span> .env.example .env  <span class="comment"># set POSTGRES_PASSWORD, REDIS_PASSWORD, GEMINI_API_KEY</span></div>
+    <div>&nbsp;</div>
+    <div><span class="comment"># build + run all five services</span></div>
+    <div><span class="c1">docker</span> compose up -d --build</div>
+    <div>&nbsp;</div>
+    <div><span class="comment"># health</span></div>
+    <div><span class="c1">curl</span> http://localhost:8000/health</div>
+  </div>
+
+  <div class="legend">
+    <div class="card">
+      <h3>Security group rules</h3>
+      <ul>
+        <li><span class="k mono">22</span> SSH — restrict to your IP/CIDR</li>
+        <li><span class="k mono">80/443</span> HTTP(S) — frontend, from <code>0.0.0.0/0</code></li>
+        <li><span class="k mono">8000</span> API — only if hitting the backend directly for debugging</li>
+        <li><span class="k mono">5432 / 6379 / 6333</span> — <b>not</b> exposed outside the Docker bridge network</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>What's not shown</h3>
+      <ul>
+        <li>No ALB / Route 53 — instance is reached by its public IP or an A record pointed at it</li>
+        <li>No managed RDS/ElastiCache — Postgres and Redis are the containers, backed by EBS volumes</li>
+        <li>No autoscaling — one instance, one <code>docker compose</code> stack</li>
+        <li>TLS termination (if added) would sit in front of nginx, e.g. Let's Encrypt via certbot</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>Auth reality check</h3>
+      <ul>
+        <li><svg class="icon" style="width:13px;height:13px;vertical-align:-2px"><use href="#i-lock"/></svg> demo login creds are baked into the frontend image at <span class="k">build</span> time (Vite <code>VITE_</code>_ args)</li>
+        <li>rotating a demo password means rebuilding the frontend container, not just editing <code>.env</code> at runtime</li>
+      </ul>
+    </div>
+  </div>
+
+  <footer class="note">
+    Source of truth: <code class="mono">docker-compose.yml</code>, <code class="mono">backend/Dockerfile</code>, <code class="mono">frontend/Dockerfile</code>. Redraw this if the compose file's services, ports, or volumes change.
+  </footer>
+
+</div>

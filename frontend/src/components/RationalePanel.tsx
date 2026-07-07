@@ -26,6 +26,7 @@ export default function RationalePanel({
   isExpedite,
   relevantAgents,
   queryClassificationReason,
+  providerResponse,
 }: {
   needsHumanReview: boolean;
   interruptReason: string | null;
@@ -35,6 +36,7 @@ export default function RationalePanel({
   isExpedite: boolean;
   relevantAgents?: string[];
   queryClassificationReason?: string | null;
+  providerResponse?: string | null;
 }) {
   return (
     <div className="flex h-full flex-col overflow-hidden rounded-xl border border-border bg-card shadow-soft">
@@ -69,6 +71,13 @@ export default function RationalePanel({
               </p>
             </div>
           )
+        )}
+
+        {providerResponse && (
+          <div className="rounded-xl border border-teal-200 bg-teal-50 p-3">
+            <p className="text-xs font-semibold text-teal-800">Provider's Response</p>
+            <p className="mt-1 text-sm text-teal-900">{providerResponse}</p>
+          </div>
         )}
 
         <div>

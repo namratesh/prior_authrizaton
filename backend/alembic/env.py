@@ -1,13 +1,17 @@
 import os
 import sys
 from logging.config import fileConfig
+from pathlib import Path
 
+from dotenv import load_dotenv
 from sqlalchemy import engine_from_config
 from sqlalchemy import pool
 
 from alembic import context
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+
+load_dotenv(Path(__file__).resolve().parents[2] / ".env")
 
 from app.db.base import Base  # noqa: E402
 from app.db import models  # noqa: E402,F401

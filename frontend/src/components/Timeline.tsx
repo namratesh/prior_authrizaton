@@ -109,7 +109,15 @@ export default function Timeline({
       >
         {statusLabel()}
       </p>
-      {needsHumanReview && interruptReason && (
+      {awaitingProviderResponse && interruptReason && (
+        <div className="mt-3 rounded-lg border border-radiant/30 bg-red-50/60 p-3">
+          <p className="text-xs font-semibold text-radiant">Reviewer's question</p>
+          <p className="mt-1 text-sm text-foreground/90">
+            {interruptReason.replace(/^Awaiting Provider Response:\s*/, "")}
+          </p>
+        </div>
+      )}
+      {!awaitingProviderResponse && needsHumanReview && interruptReason && (
         <p className="mt-1 text-xs text-radiant">Reason: {interruptReason}</p>
       )}
     </Card>

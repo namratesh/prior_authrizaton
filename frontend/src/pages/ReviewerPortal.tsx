@@ -299,6 +299,7 @@ export default function ReviewerPortal() {
             isExpedite={isExpedite}
             relevantAgents={review.routing?.relevant_agents}
             queryClassificationReason={review.routing?.query_classification_reason}
+            providerResponse={review.routing?.provider_response}
           />
         </div>
       </div>

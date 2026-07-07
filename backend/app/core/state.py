@@ -70,6 +70,14 @@ class RoutingPayload(BaseModel):
     # UI on deny). Persisted so the audit trail actually contains what the
     # Reviewer Portal's dialog promises it records.
     reviewer_reason: Optional[str] = None
+    # Saved off the first time "clarify" fires, so "provider_responded" can
+    # restore the pre-clarify reason instead of the "Awaiting Provider
+    # Response: ..." text clobbering it permanently.
+    original_interrupt_reason: Optional[str] = None
+    # The patient's free-text reply to a clarify question — persisted so the
+    # reviewer can actually see what was answered, not just that a response
+    # happened.
+    provider_response: Optional[str] = None
     final_status: Optional[str] = None
     sla_deadline: Optional[datetime] = None
     case_status: Optional[str] = None

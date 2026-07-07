@@ -97,6 +97,18 @@ export async function getStatus(caseId: string): Promise<StatusResponse> {
   return json(res);
 }
 
+export async function respondToCase(
+  caseId: string,
+  response: string
+): Promise<{ case_id: string; case_status: string | null; interrupt_reason: string | null }> {
+  const res = await fetch(`${API_URL}/api/v1/status/${caseId}/respond`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ response }),
+  });
+  return json(res);
+}
+
 export async function getReview(caseId: string): Promise<ReviewResponse> {
   const res = await fetch(`${API_URL}/api/v1/review/${caseId}`);
   return json(res);

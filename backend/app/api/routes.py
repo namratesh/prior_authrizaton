@@ -122,6 +122,33 @@ def get_status(case_id: str, db: Session = Depends(get_db)):
     }
 
 
+@router.post("/status/{case_id}/respond")
+@limiter.limit("10/minute")
+def respond_to_case(request: Request, case_id: str, payload: dict, db: Session = Depends(get_db)):
+    """Patient supplies the additional info a reviewer asked for via
+    'clarify'. Resumes the SAME case_id — no new case/claim is created — and
+    puts it back in the reviewer's queue for a decision."""
+    response = (payload.get("response") or "").strip()
+    if not response:
+        raise HTTPException(400, "A response is required")
+
+    row = db.execute(
+        text("SELECT routing_payload FROM cases WHERE id = :id"), {"id": case_id}
+    ).mappings().first()
+    if row is None:
+        raise HTTPException(404, "Case not found")
+    routing = row["routing_payload"] or {}
+    if routing.get("case_status") != "awaiting_provider_response":
+        raise HTTPException(400, "This case isn't awaiting a provider response")
+
+    state = resume_case(db, case_id, {"action": "provider_responded", "response": response})
+    return {
+        "case_id": case_id,
+        "case_status": state.routing.case_status,
+        "interrupt_reason": state.routing.interrupt_reason,
+    }
+
+
 def _parse_dt(value):
     if not value:
         return None

@@ -241,17 +241,28 @@ def human_review_node(state: AgenticPAState) -> dict:
             update={
                 "interrupt_reason": f"Awaiting Provider Response: {question}",
                 "case_status": "awaiting_provider_response",
+                # Only capture on the first clarify — a second clarify before
+                # the first is answered must not overwrite the true original
+                # with the previous "Awaiting Provider Response: ..." text.
+                "original_interrupt_reason": state.routing.original_interrupt_reason
+                or state.routing.interrupt_reason,
             }
         )
         audit = state.audit.model_copy(update=_trace(state, "reviewer", action=action, question=question))
         return {"routing": routing, "audit": audit}
 
     if action == "provider_responded":
-        original_reason = payload.get("original_reason") or state.routing.interrupt_reason
+        original_reason = (
+            state.routing.original_interrupt_reason
+            or payload.get("original_reason")
+            or state.routing.interrupt_reason
+        )
         routing = state.routing.model_copy(
             update={
                 "interrupt_reason": original_reason,
                 "case_status": "needs_reviewer_decision",
+                "original_interrupt_reason": None,
+                "provider_response": payload.get("response"),
             }
         )
         audit = state.audit.model_copy(

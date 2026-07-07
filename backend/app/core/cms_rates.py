@@ -17,12 +17,16 @@ GPCIs, or conversion factor) is reflected within a bounded window instead of
 being masked by an entry cached before the update.
 """
 import os
+from pathlib import Path
 
 import redis
+from dotenv import load_dotenv
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from app.core.cms_ingest import CMS_CONVERSION_FACTOR_2026
+
+load_dotenv(Path(__file__).resolve().parents[3] / ".env")
 
 REDIS_URL = os.environ.get("REDIS_URL", "redis://localhost:6379/0")
 CMS_RATE_CACHE_TTL_SECONDS = 24 * 60 * 60

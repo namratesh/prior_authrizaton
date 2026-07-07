@@ -1,0 +1,15 @@
+Prior Authorization Request
+
+Patient Name: Margaret Sullivan
+Date of Birth: 1955-04-12
+Patient Zip: 90210
+
+Clinical Note:
+Diagnosis: J45.909 (asthma, unspecified, uncontrolled)
+Requested Service: Diagnostic bronchoscopy with placement of fiducial markers
+for planned radiation therapy targeting (CPT 31626)
+
+Billing Sheet:
+Billed Amount: $820.00
+Prescribing Physician: Dr. Anita Rao
+Provider NPI: 1002003010

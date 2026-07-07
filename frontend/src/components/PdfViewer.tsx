@@ -4,13 +4,12 @@ import { ChevronLeft, ChevronRight, FileText } from "lucide-react";
 import "react-pdf/dist/Page/TextLayer.css";
 import "react-pdf/dist/Page/AnnotationLayer.css";
 import { Button } from "@/components/ui/button";
+import { API_URL } from "@/store/api";
 
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
   "pdfjs-dist/build/pdf.worker.min.mjs",
   import.meta.url
 ).toString();
-
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
 const PRICE_RE = /\$\s?[\d,]+(?:\.\d{2})?/;
 

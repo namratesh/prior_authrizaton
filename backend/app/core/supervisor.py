@@ -7,10 +7,11 @@ every read rather than cached, so the Reviewer Portal's pulsing badge always
 reflects the true remaining time.
 
 sla_hours/expedite_hours are admin-tunable (see settings_store.py) rather
-than fixed constants — callers with DB access should read
-settings_store.get_settings(db) and pass its values through; callers without
-one (e.g. routes.py's stateless /status read) fall back to the defaults
-below, which mirror admin_settings' seeded row.
+than fixed constants — every caller with DB access reads
+settings_store.get_settings(db) and passes its values through (including
+routes.py's /status read). The defaults below exist only as a fallback for
+call sites with genuinely no DB access, and mirror admin_settings' seeded
+row.
 """
 from datetime import datetime, timedelta, timezone
 

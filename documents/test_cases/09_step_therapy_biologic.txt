@@ -1,0 +1,16 @@
+Prior Authorization Request
+
+Patient Name: Bernice Alvarado
+Date of Birth: 1959-01-30
+Patient Zip: 30301
+
+Clinical Note:
+Diagnosis: M06.9 (rheumatoid arthritis, unspecified)
+Requested Service: Initiation of biologic disease-modifying antirheumatic
+drug (DMARD) therapy, subcutaneous injection, prior to trial of standard
+first-line methotrexate (CPT J3262)
+
+Billing Sheet:
+Billed Amount: $3200.00
+Prescribing Physician: Dr. Felicia Nakamura
+Provider NPI: 1002003013

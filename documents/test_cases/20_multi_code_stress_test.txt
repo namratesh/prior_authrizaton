@@ -1,0 +1,20 @@
+Prior Authorization Request
+
+Patient Name: Theodore Banks
+Date of Birth: 1951-11-19
+Patient Zip: 60601
+
+Clinical Note:
+Diagnoses:
+  1. E11.9 (type 2 diabetes mellitus without complications)
+  2. I10 (essential hypertension)
+  3. E78.5 (hyperlipidemia, unspecified)
+Requested Services (multiple, same visit):
+  1. Implantable continuous glucose sensor insertion (CPT 0446T)
+  2. Ambulatory blood pressure monitoring, 24-hour (CPT 93784)
+  3. Lipid panel, comprehensive (CPT 80061)
+
+Billing Sheet:
+Billed Amount (combined): $12400.00
+Prescribing Physician: Dr. Linda Cho
+Provider NPI: 1002003001

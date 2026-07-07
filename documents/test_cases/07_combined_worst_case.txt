@@ -1,0 +1,10 @@
+prior auth (scanned, poor quality, multi-page fax)
+
+pt name: illegible / dob: 19?? / zip: 99501
+
+clinic note: dx unclear, possibly experimental pain protocol, unlisted cpt
+code, investigational photobiomodulation-type therapy, not otherwise
+specified
+
+billed: $22,000 (handwritten, hard to confirm digit count)
+physician: signature only, npi not legible

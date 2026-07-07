@@ -175,6 +175,16 @@ def run_intake_agent(
     relevant_agents = [a for a in (parsed.get("relevant_agents") or ALL_AGENTS) if a in ALL_AGENTS]
     if not relevant_agents:
         relevant_agents = ALL_AGENTS
+    # Deterministic safety net: the LLM's relevant_agents classification is a
+    # routing hint and can be wrong-but-non-empty (the empty-list fail-safe
+    # above never catches that). If the document itself carries the data a
+    # check needs, force that check to run regardless of what the LLM
+    # decided — a hard gate must never go dark just because a classifier
+    # under-included a check.
+    if parsed.get("billed_amount") is not None and "cost" not in relevant_agents:
+        relevant_agents.append("cost")
+    if (parsed.get("icd10_codes") or parsed.get("cpt_codes")) and "rag" not in relevant_agents:
+        relevant_agents.append("rag")
     reason = parsed.get("query_classification_reason") or ""
 
     clinical = ClinicalPayload(

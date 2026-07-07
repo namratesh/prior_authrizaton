@@ -12,13 +12,13 @@ const STEPS = [
   { key: "complete", label: "Decision" },
 ];
 
-// current_phase values emitted by the graph don't map 1:1 onto these display
-// steps (e.g. "cost"/"rag" both mean "Cost Check"/"Policy Check" are running
-// in parallel) — this table collapses graph phases to the 5 UI steps.
+// current_phase values emitted by the graph/case_runner (see
+// backend/app/core/graph.py and case_runner.py) — "cost_check" covers the
+// parallel Cost + Policy RAG superstep, "peer_review" covers the hard-gate
+// evaluation right after it, this table collapses those into the 5 UI steps.
 const PHASE_TO_STEP_INDEX: Record<string, number> = {
   intake: 0,
-  cost: 1,
-  rag: 2,
+  cost_check: 1,
   peer_review: 2,
   awaiting_review: 3,
   complete: 4,
@@ -53,7 +53,7 @@ export default function Timeline({
       return "Awaiting your response — the reviewer asked a follow-up question";
     if (needsHumanReview) return "Awaiting reviewer — your case needs a closer look";
     if (currentPhase === "intake") return "Reading your request...";
-    if (currentPhase === "cost" || currentPhase === "rag") return "Cost Agent reviewing...";
+    if (currentPhase === "cost_check") return "Checking cost and policy...";
     if (currentPhase === "peer_review") return "Checking policy and compliance...";
     return "Processing...";
   };

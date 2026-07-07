@@ -1,0 +1,14 @@
+Prior Authorization Request
+
+Patient Name: Robert Ellison
+Date of Birth: 1948-11-02
+Patient Zip: 36104
+
+Clinical Note:
+Diagnosis: E11.9 (type 2 diabetes mellitus without complications)
+Requested Service: Implantable continuous glucose sensor insertion (CPT 0446T)
+
+Billing Sheet:
+Billed Amount: $18500.00
+Prescribing Physician: Dr. Linda Cho
+Provider NPI: 1002003001

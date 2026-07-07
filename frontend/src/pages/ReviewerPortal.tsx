@@ -221,6 +221,7 @@ export default function ReviewerPortal() {
         diffs: Object.keys(clinicalDiffs).length ? { clinical: clinicalDiffs } : {},
         question: action === "clarify" ? clarifyQuestion : undefined,
         original_reason: action === "provider_responded" ? review.routing?.interrupt_reason : undefined,
+        reason: action === "deny" ? denyReason : undefined,
       });
       const updated = await getReview(caseId);
       setReview(updated);

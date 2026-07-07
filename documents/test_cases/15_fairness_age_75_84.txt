@@ -1,0 +1,14 @@
+Prior Authorization Request
+
+Patient Name: Frances Doyle
+Date of Birth: 1948-02-14
+Patient Zip: 36104
+
+Clinical Note:
+Diagnosis: I10 (essential hypertension)
+Requested Service: Ambulatory blood pressure monitoring, 24-hour (CPT 93784)
+
+Billing Sheet:
+Billed Amount: $65.00
+Prescribing Physician: Dr. Nathan Reyes
+Provider NPI: 1002003020

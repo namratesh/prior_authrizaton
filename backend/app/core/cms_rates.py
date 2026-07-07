@@ -23,9 +23,18 @@ from app.core.cms_ingest import CMS_CONVERSION_FACTOR_2026
 
 REDIS_URL = os.environ.get("REDIS_URL", "redis://localhost:6379/0")
 
+_redis_client: redis.Redis | None = None
+
 
 def get_redis_client() -> redis.Redis:
-    return redis.Redis.from_url(REDIS_URL, decode_responses=True)
+    # Memoized: redis.Redis.from_url already returns a client backed by a
+    # connection pool, but re-creating it on every cost-check call (previously
+    # once per case) still meant opening a brand-new pool/handshake each time
+    # instead of reusing one for the process lifetime.
+    global _redis_client
+    if _redis_client is None:
+        _redis_client = redis.Redis.from_url(REDIS_URL, decode_responses=True)
+    return _redis_client
 
 
 def _compute_rate(cpt: str, zip_code: str, db: Session) -> float | None:

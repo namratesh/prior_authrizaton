@@ -115,7 +115,10 @@ def get_status(case_id: str, db: Session = Depends(get_db)):
         # adjudicated amount — available as soon as Cost Agent completes.
         "estimated_out_of_pocket": financial.get("cms_benchmark_rate"),
         "sla_deadline": routing.get("sla_deadline"),
-        "is_expedite": is_expedite(_parse_dt(routing.get("sla_deadline"))),
+        "is_expedite": is_expedite(
+            _parse_dt(routing.get("sla_deadline")),
+            expedite_hours=get_settings(db).expedite_hours,
+        ),
     }
 
 
@@ -198,18 +201,25 @@ def assign_case(request: Request, case_id: str, payload: dict, db: Session = Dep
     if not reviewer_id:
         raise HTTPException(400, "reviewer_id is required")
 
-    row = db.execute(
-        text("SELECT assigned_to FROM cases WHERE id = :id"), {"id": case_id}
-    ).mappings().first()
-    if row is None:
-        raise HTTPException(404, "Case not found")
-    if row["assigned_to"] and row["assigned_to"] != reviewer_id:
-        raise HTTPException(409, f"Case already assigned to {row['assigned_to']}")
-
-    db.execute(
-        text("UPDATE cases SET assigned_to = :reviewer_id, assigned_at = now() WHERE id = :id"),
+    # Atomic claim: the WHERE clause re-checks "still unassigned or already
+    # mine" as part of the same UPDATE, so two reviewers racing to claim the
+    # same case can't both succeed — Postgres serializes the two UPDATEs via
+    # the row lock, and only the one whose WHERE still matches after the
+    # first commit actually updates a row.
+    result = db.execute(
+        text(
+            "UPDATE cases SET assigned_to = :reviewer_id, assigned_at = now() "
+            "WHERE id = :id AND (assigned_to IS NULL OR assigned_to = :reviewer_id)"
+        ),
         {"reviewer_id": reviewer_id, "id": case_id},
     )
+    if result.rowcount == 0:
+        row = db.execute(
+            text("SELECT assigned_to FROM cases WHERE id = :id"), {"id": case_id}
+        ).mappings().first()
+        if row is None:
+            raise HTTPException(404, "Case not found")
+        raise HTTPException(409, f"Case already assigned to {row['assigned_to']}")
     db.commit()
     return {"case_id": case_id, "assigned_to": reviewer_id}
 
@@ -327,7 +337,8 @@ def put_admin_settings(payload: dict, db: Session = Depends(get_db)):
 def adjudicate(request: Request, case_id: str, payload: dict, db: Session = Depends(get_db)):
     """Body: {"action": "approve"|"modify"|"deny"|"clarify"|"provider_responded",
     "reviewer_id": str, "diffs": {"clinical": {...}, "financial": {...}},
-    "question": str (for clarify), "original_reason": str}
+    "question": str (for clarify), "original_reason": str,
+    "reason": str (reviewer's justification, required by the UI on deny)}
     """
     action = payload.get("action")
     if action not in {"approve", "modify", "deny", "clarify", "provider_responded"}:

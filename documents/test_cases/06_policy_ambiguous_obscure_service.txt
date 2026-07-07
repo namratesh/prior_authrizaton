@@ -1,0 +1,16 @@
+Prior Authorization Request
+
+Patient Name: Wanda Feldstein
+Date of Birth: 1957-07-22
+Patient Zip: 60601
+
+Clinical Note:
+Diagnosis: G89.29 (other chronic pain)
+Requested Service: Investigational low-level laser photobiomodulation therapy
+for chronic myofascial pain syndrome, experimental protocol, unlisted
+procedure code (CPT 64999)
+
+Billing Sheet:
+Billed Amount: $1400.00
+Prescribing Physician: Dr. Yusuf Demir
+Provider NPI: 1002003012

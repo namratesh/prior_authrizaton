@@ -66,6 +66,10 @@ class RoutingPayload(BaseModel):
     reviewer_id: Optional[str] = None
     reviewer_decision: Optional[Literal["approve", "modify", "deny"]] = None
     reviewer_diffs: dict[str, Any] = Field(default_factory=dict)
+    # Free-text justification the reviewer typed (currently required by the
+    # UI on deny). Persisted so the audit trail actually contains what the
+    # Reviewer Portal's dialog promises it records.
+    reviewer_reason: Optional[str] = None
     final_status: Optional[str] = None
     sla_deadline: Optional[datetime] = None
     case_status: Optional[str] = None

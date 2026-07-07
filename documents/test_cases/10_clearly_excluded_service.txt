@@ -1,0 +1,15 @@
+Prior Authorization Request
+
+Patient Name: Gloria Winston
+Date of Birth: 1962-09-05
+Patient Zip: 90210
+
+Clinical Note:
+Diagnosis: Z41.1 (encounter for cosmetic surgery, not medically necessary)
+Requested Service: Elective cosmetic upper blepharoplasty for aesthetic
+eyelid rejuvenation, no functional visual impairment documented (CPT 15822)
+
+Billing Sheet:
+Billed Amount: $4200.00
+Prescribing Physician: Dr. Patricia Lowell
+Provider NPI: 1002003014

@@ -1,0 +1,16 @@
+Prior Authorization Request
+
+Patient Name: Samuel Ortega
+Date of Birth: 1950-12-01
+Patient Zip: 10001
+
+Clinical Note:
+Diagnosis: (pending confirmation - physician note references "see attached
+labs," labs not included with this submission)
+Requested Service: Follow-up diagnostic imaging, specific modality not
+stated in this excerpt (CPT to be confirmed by ordering physician)
+
+Billing Sheet:
+Billed Amount: $500.00
+Prescribing Physician: Dr. Wendy Park
+Provider NPI: 1002003015

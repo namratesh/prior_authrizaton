@@ -26,10 +26,18 @@ SPARSE_VECTOR = "sparse"
 
 _dense_model: TextEmbedding | None = None
 _sparse_model: SparseTextEmbedding | None = None
+_qdrant_client: QdrantClient | None = None
 
 
 def get_qdrant_client() -> QdrantClient:
-    return QdrantClient(url=QDRANT_URL)
+    # Memoized like get_dense_model/get_sparse_model below (and llm_client.py's
+    # provider clients) — every RAG-agent call otherwise opened a brand-new
+    # QdrantClient/connection pool instead of reusing one for the process
+    # lifetime.
+    global _qdrant_client
+    if _qdrant_client is None:
+        _qdrant_client = QdrantClient(url=QDRANT_URL)
+    return _qdrant_client
 
 
 def get_dense_model() -> TextEmbedding:

@@ -1,0 +1,14 @@
+Prior Authorization Request
+
+Patient Name: Harold Whitfield
+Date of Birth: 1945-06-20
+Patient Zip: 60601
+
+Clinical Note:
+Diagnosis: M17.9 (osteoarthritis of knee, unspecified)
+Requested Service: Total knee arthroplasty (CPT 27447)
+
+Billing Sheet:
+Billed Amount: $8200.00
+Prescribing Physician: Dr. Susan Ibarra
+Provider NPI: 1002003003

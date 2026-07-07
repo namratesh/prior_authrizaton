@@ -1,0 +1,14 @@
+Prior Authorization Request
+
+Patient Name: David Okonkwo
+Date of Birth: 1960-02-18
+Patient Zip: 99501
+
+Clinical Note:
+Diagnosis: M54.5 (low back pain)
+Requested Service: Lumbar epidural steroid injection (CPT 62323)
+
+Billing Sheet:
+Billed Amount: $950.00
+Prescribing Physician: Dr. Karen Ivers
+Provider NPI: 1002003011

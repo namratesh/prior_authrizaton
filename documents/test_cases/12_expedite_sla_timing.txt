@@ -1,0 +1,15 @@
+Prior Authorization Request
+
+Patient Name: Irene Castellano
+Date of Birth: 1953-05-16
+Patient Zip: 30301
+
+Clinical Note:
+Diagnosis: J45.909 (asthma, unspecified, uncontrolled)
+Requested Service: Diagnostic bronchoscopy with placement of fiducial
+markers for planned radiation therapy targeting (CPT 31626)
+
+Billing Sheet:
+Billed Amount: $870.00
+Prescribing Physician: Dr. Miriam Okafor
+Provider NPI: 1002003000

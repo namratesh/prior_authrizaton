@@ -22,7 +22,12 @@ from app.core.state import AgenticPAState, ClinicalPayload
 
 def _persist(db: Session, case_id: str, state: AgenticPAState, interrupted: bool) -> None:
     row = db.execute(text("SELECT id FROM cases WHERE id = :id"), {"id": case_id}).first()
-    phase = state.routing.current_phase or ("awaiting_review" if interrupted else "intake")
+    # A paused interrupt always means "awaiting review," regardless of
+    # whichever phase last ran before the pause (current_phase is only
+    # updated by intake/alternative/summarizer nodes, so it would otherwise
+    # stay stuck on a stale value like "peer_review" for the entire time the
+    # case is actually sitting in front of a reviewer).
+    phase = "awaiting_review" if interrupted else (state.routing.current_phase or "intake")
     # final_status stays NULL until the case is truly decided (Approved/Denied)
     # — the frontend's "is this case already decided" check depends on that
     # distinction; a display label like "Needs Human Review" here would make

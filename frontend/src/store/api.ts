@@ -2,7 +2,7 @@
 // In production (docker-compose), nginx proxies /api/ to the backend container,
 // so requests stay same-origin and no build-time API URL needs to be baked in.
 // In dev (`npm run dev`), there's no proxy, so fall back to the local backend port.
-const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.DEV ? "http://localhost:8000" : "");
+export const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.DEV ? "http://localhost:8000" : "");
 
 export interface StatusResponse {
   case_id: string;
@@ -106,6 +106,7 @@ export interface AdjudicatePayload {
   diffs?: { clinical?: Record<string, any>; financial?: Record<string, any> };
   question?: string;
   original_reason?: string;
+  reason?: string;
 }
 
 export async function adjudicate(caseId: string, payload: AdjudicatePayload) {

@@ -248,18 +248,20 @@ def human_review_node(state: AgenticPAState) -> dict:
     financial = state.financial.model_copy(update=diffs.get("financial", {})) if diffs.get("financial") else state.financial
 
     final_status = "Denied" if action == "deny" else "Approved"
+    reason = payload.get("reason")
     routing = state.routing.model_copy(
         update={
             "reviewer_id": payload.get("reviewer_id"),
             "reviewer_decision": action,
             "reviewer_diffs": diffs,
+            "reviewer_reason": reason,
             "final_status": final_status,
             "needs_human_review": False,
             "case_status": final_status.lower(),
         }
     )
     audit = state.audit.model_copy(
-        update=_trace(state, "reviewer", action=action, diffs=diffs)
+        update=_trace(state, "reviewer", action=action, diffs=diffs, reason=reason)
     )
     return {"clinical": clinical, "financial": financial, "routing": routing, "audit": audit}
 

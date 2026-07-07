@@ -1,7 +1,7 @@
 """
 PDF -> (chunk_text, page_num) extraction for policy ingestion.
 
-// DEMO-REAL: pdfplumber only, no Azure Document Intelligence fallback (out of scope).
+// MVP-REAL: pdfplumber only, no Azure Document Intelligence fallback (out of scope).
 """
 from pathlib import Path
 from typing import Iterator

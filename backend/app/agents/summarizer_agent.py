@@ -1,8 +1,8 @@
 """
 Dual-Output Summarizer.
 
-// DEMO-REAL (LLM translation call + Flesch scoring)
-// DEMO-MOCKED (FHIR stub — a structurally plausible Claim/ClaimResponse-shaped
+// MVP-REAL (LLM translation call + Flesch scoring)
+// MVP-MOCKED (FHIR stub — a structurally plausible Claim/ClaimResponse-shaped
 dict, not a validated FHIR resource; real FHIR interop is out of scope for the
 hackathon per CLAUDE.md)
 
@@ -65,7 +65,7 @@ def _build_user_content(state: AgenticPAState) -> str:
 
 
 def _build_fhir_stub(state: AgenticPAState) -> dict:
-    """// DEMO-MOCKED: illustrative FHIR-shaped structure, not schema-validated."""
+    """// MVP-MOCKED: illustrative FHIR-shaped structure, not schema-validated."""
     return {
         "resourceType": "ClaimResponse",
         "status": "active",

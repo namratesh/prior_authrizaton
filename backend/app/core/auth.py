@@ -2,7 +2,7 @@
 had zero auth: any client that could reach the container could pull the
 audit export, flip admin settings, or claim reviewer queues.
 
-// DEMO-REAL: not per-role auth (see app/db/models.py's User stub docstring
+// MVP-REAL: not per-role auth (see app/db/models.py's User stub docstring
 and frontend/src/store/auth.ts) — one shared secret checked via the
 X-API-Key header, same key used for every role. If API_KEY isn't set in the
 environment, the check is skipped (logged once) so local dev without a .env

@@ -1,7 +1,7 @@
 """
 Ingest AARP EOC/SOB policy PDFs into the aarp_policies Qdrant collection.
 
-// DEMO-REAL: real pdfplumber extraction + fastembed dense/sparse encoding of the
+// MVP-REAL: real pdfplumber extraction + fastembed dense/sparse encoding of the
 provided policy PDFs, not a mocked/stubbed index.
 """
 import os

@@ -1,22 +1,22 @@
 import { create } from "zustand";
 
-// DEMO-MOCKED: no real auth. Two hardcoded roles, and a single synthetic
+// MVP-MOCKED: no real auth. Two hardcoded roles, and a single synthetic
 // "logged in" patient record used to auto-populate the Submission view.
-export const DEMO_PATIENT = {
+export const MVP_PATIENT = {
   memberId: "AARP-90210-0001",
   name: "Jane Doe",
   dob: "1950-01-01",
   zip: "90210",
 };
 
-export const DEMO_REVIEWER_ID = "reviewer-1";
+export const MVP_REVIEWER_ID = "reviewer-1";
 
 // Two seeded reviewer users (app/core/fixtures.py) so "My Queue" vs
 // "Unassigned"/team queue is demonstrable without building real reviewer
 // login — a dropdown swap of "who am I" rather than a session.
-export const DEMO_REVIEWERS = [
-  { id: "reviewer-1", name: "Demo Reviewer" },
-  { id: "reviewer-2", name: "Demo Reviewer 2" },
+export const MVP_REVIEWERS = [
+  { id: "reviewer-1", name: "MVP Reviewer" },
+  { id: "reviewer-2", name: "MVP Reviewer 2" },
 ];
 
 const CASE_HISTORY_KEY = "agenticpa_patient_case_history";
@@ -32,7 +32,7 @@ function loadCaseHistory(): string[] {
 }
 
 function loadReviewerId(): string {
-  return localStorage.getItem(REVIEWER_ID_KEY) || DEMO_REVIEWER_ID;
+  return localStorage.getItem(REVIEWER_ID_KEY) || MVP_REVIEWER_ID;
 }
 
 function loadActiveCaseId(): string | null {

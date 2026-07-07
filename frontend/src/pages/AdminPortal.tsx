@@ -9,6 +9,8 @@ import {
   ResponsiveContainer,
   BarChart,
   Bar,
+  Cell,
+  ReferenceLine,
   CartesianGrid,
 } from "recharts";
 import {
@@ -45,6 +47,7 @@ import LoadingState from "@/components/LoadingState";
 import UrgencyBadge from "@/components/UrgencyBadge";
 import ChartTooltip from "@/components/charts/ChartTooltip";
 import { CHART_COLORS } from "@/lib/chart-theme";
+import { cn } from "@/lib/utils";
 import { summarizeTraceEntry } from "@/lib/traceSummary";
 import { useCountUp } from "@/lib/useCountUp";
 import { Card, CardContent } from "@/components/ui/card";
@@ -187,6 +190,32 @@ function AccuracyTile({ data }: { data: AdminMetrics["accuracy_drift"] }) {
   );
 }
 
+const FAIRNESS_DIMENSIONS: { key: AdminMetrics["fairness_cohorts"][number]["dimension"] | "demographics"; label: string }[] = [
+  { key: "demographics", label: "Age / Region" },
+  { key: "provider", label: "Provider" },
+  { key: "service", label: "Service" },
+];
+
+function FairnessTooltip({ active, payload }: { active?: boolean; payload?: { payload: AdminMetrics["fairness_cohorts"][number] }[] }) {
+  if (!active || !payload?.length) return null;
+  const c = payload[0].payload;
+  return (
+    <div className="rounded-lg border border-border bg-card/95 px-3 py-2 text-xs shadow-elevated backdrop-blur">
+      <p className="mb-1 font-medium text-foreground">{c.cohort}</p>
+      <p className="text-muted-foreground">
+        Approval rate: <span className="font-medium text-foreground">{(c.approval_rate * 100).toFixed(0)}%</span>{" "}
+        (n={c.total})
+      </p>
+      <p className="text-muted-foreground">
+        95% CI: {(c.ci_low * 100).toFixed(0)}%–{(c.ci_high * 100).toFixed(0)}%
+      </p>
+      {c.significant_disparity && (
+        <p className="mt-1 font-medium text-radiant">Differs from overall rate beyond sampling noise</p>
+      )}
+    </div>
+  );
+}
+
 function BiasFairnessCard({
   data,
   finalizedTotal,
@@ -194,30 +223,57 @@ function BiasFairnessCard({
   data: AdminMetrics["fairness_cohorts"];
   finalizedTotal: number;
 }) {
+  const [dimension, setDimension] = useState<(typeof FAIRNESS_DIMENSIONS)[number]["key"]>("demographics");
+
+  const filtered = data.filter((c) =>
+    dimension === "demographics" ? c.dimension === "age" || c.dimension === "region" : c.dimension === dimension
+  );
+  const overallRate = data.length
+    ? data.reduce((sum, c) => sum + c.approval_rate * c.total, 0) / data.reduce((sum, c) => sum + c.total, 0)
+    : null;
+
   return (
     <Card>
       <CardContent className="pt-6">
-        <div className="mb-1 flex items-center gap-2 text-muted-foreground">
-          <Scale size={16} className="text-navy-600" />
-          <h3 className="text-sm font-medium">Bias &amp; Fairness Gauge</h3>
+        <div className="mb-1 flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 text-muted-foreground">
+            <Scale size={16} className="text-navy-600" />
+            <h3 className="text-sm font-medium">Bias &amp; Fairness Gauge</h3>
+          </div>
+          <div className="flex gap-1">
+            {FAIRNESS_DIMENSIONS.map((d) => (
+              <button
+                key={d.key}
+                onClick={() => setDimension(d.key)}
+                className={cn(
+                  "rounded-full border px-2 py-0.5 text-[11px] transition-colors",
+                  dimension === d.key
+                    ? "border-navy-600 bg-navy-600 text-white"
+                    : "border-border text-muted-foreground hover:bg-muted"
+                )}
+              >
+                {d.label}
+              </button>
+            ))}
+          </div>
         </div>
         <p className="mb-3 flex items-start gap-1 text-[11px] leading-snug text-muted-foreground">
           <Info size={12} className="mt-0.5 shrink-0" />
-          Approval rate by age/region cohort, computed from each case's own patient_dob/
-          patient_zip. Cohorts with fewer than 3 finalized cases are omitted rather than shown
-          with a misleadingly precise rate.
+          Approval rate by cohort, computed from each case's own data. Cohorts with fewer than 3
+          finalized cases are omitted. Bars in red have a 95% confidence interval that excludes the
+          overall approval rate — a disparity unlikely to be sampling noise.
         </p>
-        {data.length === 0 ? (
+        {filtered.length === 0 ? (
           <EmptyState
             label={
               finalizedTotal === 0
                 ? "No finalized cases yet — the cohort breakdown will populate as cases are approved or denied."
-                : `Not enough finalized cases yet for a reliable cohort breakdown (no age/region cohort has reached the minimum of 3, out of ${finalizedTotal} finalized case${finalizedTotal === 1 ? "" : "s"})`
+                : `Not enough finalized cases yet for a reliable cohort breakdown in this dimension (out of ${finalizedTotal} finalized case${finalizedTotal === 1 ? "" : "s"})`
             }
           />
         ) : (
           <ResponsiveContainer width="100%" height={170}>
-            <BarChart data={data} margin={{ top: 8, right: 8, bottom: 0, left: -16 }}>
+            <BarChart data={filtered} margin={{ top: 8, right: 8, bottom: 0, left: -16 }}>
               <defs>
                 <linearGradient id="biasFill" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="0%" stopColor={CHART_COLORS.primary} stopOpacity={0.95} />
@@ -227,11 +283,15 @@ function BiasFairnessCard({
               <CartesianGrid strokeDasharray="3 3" stroke={CHART_COLORS.grid} vertical={false} />
               <XAxis dataKey="cohort" tick={{ fontSize: 10, fill: CHART_COLORS.axis }} tickLine={false} axisLine={false} />
               <YAxis domain={[0, 1]} tick={{ fontSize: 10, fill: CHART_COLORS.axis }} tickLine={false} axisLine={false} />
-              <Tooltip
-                cursor={{ fill: "rgba(38,70,131,0.06)" }}
-                content={<ChartTooltip formatter={(v) => `${(v * 100).toFixed(0)}%`} />}
-              />
-              <Bar dataKey="approval_rate" fill="url(#biasFill)" radius={[6, 6, 0, 0]} />
+              <Tooltip cursor={{ fill: "rgba(38,70,131,0.06)" }} content={<FairnessTooltip />} />
+              {overallRate != null && (
+                <ReferenceLine y={overallRate} stroke={CHART_COLORS.axis} strokeDasharray="4 4" />
+              )}
+              <Bar dataKey="approval_rate" radius={[6, 6, 0, 0]}>
+                {filtered.map((c, i) => (
+                  <Cell key={i} fill={c.significant_disparity ? "#dc2626" : "url(#biasFill)"} />
+                ))}
+              </Bar>
             </BarChart>
           </ResponsiveContainer>
         )}

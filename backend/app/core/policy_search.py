@@ -1,7 +1,7 @@
 """
 Hybrid (dense + sparse, RRF-fused) search over the aarp_policies Qdrant collection.
 
-// DEMO-REAL: this is the actual retrieval call used by the AARP Medicare RAG agent.
+// MVP-REAL: this is the actual retrieval call used by the AARP Medicare RAG agent.
 """
 from qdrant_client.models import (
     FusionQuery,

@@ -1,7 +1,7 @@
 """
 FastAPI routes — the 5 endpoints specified in CLAUDE.md's API table.
 
-// DEMO-REAL
+// MVP-REAL
 """
 import csv
 import io
@@ -228,7 +228,7 @@ def get_review_pdf(request: Request, case_id: str):
 @limiter.limit("30/minute")
 def assign_case(request: Request, case_id: str, payload: dict, db: Session = Depends(get_db)):
     """Claim an unassigned case into a reviewer's personal queue. Body:
-    {"reviewer_id": str}. A shared queue (no assignment) can't demo
+    {"reviewer_id": str}. A shared queue (no assignment) can't show
     team-based workload distribution — this is the minimal claim mechanism
     that makes "My Queue" vs "Unassigned" meaningful without building full
     reviewer accounts/login."""
@@ -509,6 +509,8 @@ def admin_metrics(request: Request, db: Session = Depends(get_db), group_by: str
             """
             SELECT clinical_payload->>'patient_dob' AS patient_dob,
                    clinical_payload->>'patient_zip' AS patient_zip,
+                   clinical_payload->>'provider_npi' AS provider_npi,
+                   clinical_payload->>'requested_service_description' AS requested_service_description,
                    final_status = 'Denied' AS outcome_is_denied
             FROM cases WHERE final_status IS NOT NULL
             """

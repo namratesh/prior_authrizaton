@@ -1,8 +1,8 @@
 """
 Clinical Intake & Normalizer agent.
 
-// DEMO-REAL (PDF text extraction + LLM extraction call)
-// DEMO-REAL (few-shot injection from feedback_corrections — see core/feedback.py)
+// MVP-REAL (PDF text extraction + LLM extraction call)
+// MVP-REAL (few-shot injection from feedback_corrections — see core/feedback.py)
 
 LLM is used here for extraction only (rule 1 in CLAUDE.md) — it reads the raw
 PDF text and returns structured fields, but the resulting

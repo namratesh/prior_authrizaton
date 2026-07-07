@@ -1,7 +1,7 @@
 """
 SQLAlchemy declarative base.
 
-// DEMO-REAL
+// MVP-REAL
 """
 from sqlalchemy.orm import DeclarativeBase
 

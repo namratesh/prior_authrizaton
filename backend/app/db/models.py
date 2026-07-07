@@ -2,7 +2,7 @@
 SQLAlchemy models for cases, audit_logs (insert-only), feedback_corrections,
 and a users stub (no real auth — hardcoded Patient/Reviewer roles).
 
-// DEMO-REAL
+// MVP-REAL
 """
 import uuid
 from datetime import datetime
@@ -150,7 +150,7 @@ class RvuValue(Base):
     """Physician Fee Schedule RVUs per CPT/HCPCS code, ingested verbatim from
     CMS PPRRVU2026_Jan_nonQPP.csv (backend/data/rates/).
 
-    // DEMO-REAL
+    // MVP-REAL
     """
 
     __tablename__ = "rvu_values"
@@ -167,7 +167,7 @@ class GpciValue(Base):
     """Geographic Practice Cost Indices per (state, locality), ingested
     verbatim from CMS GPCI2026.csv (backend/data/rates/).
 
-    // DEMO-REAL
+    // MVP-REAL
     """
 
     __tablename__ = "gpci_values"
@@ -185,7 +185,7 @@ class LocalityCounty(Base):
     26LOCCO.csv (backend/data/rates/). One row per (state, locality); the
     `counties_raw` text is the CMS free-text field, kept as-is for audit.
 
-    // DEMO-REAL
+    // MVP-REAL
     """
 
     __tablename__ = "locality_counties"
@@ -209,7 +209,7 @@ class AdminSettings(Base):
     peer_review_agent.py at call time so a change takes effect on the next
     case without a redeploy.
 
-    // DEMO-REAL
+    // MVP-REAL
     """
 
     __tablename__ = "admin_settings"
@@ -228,7 +228,7 @@ class ZipLocality(Base):
     """zip -> (state, locality) resolved by matching zip_county_subset.csv
     against locality_counties. Covers only the 5 Hero Case zips.
 
-    // DEMO-REAL (the zip itself comes from general public geography, see
+    // MVP-REAL (the zip itself comes from general public geography, see
     backend/app/data/zip_county_subset.csv; the locality resolution and every
     rate computed from it is real CMS data)
     """

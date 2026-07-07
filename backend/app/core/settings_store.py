@@ -1,6 +1,6 @@
 """Admin-tunable thresholds, backed by the single-row `admin_settings` table.
 
-// DEMO-REAL: replaces the hardcoded SLA_WINDOW / EXPEDITE_WINDOW /
+// MVP-REAL: replaces the hardcoded SLA_WINDOW / EXPEDITE_WINDOW /
 INTAKE_CONFIDENCE_THRESHOLD constants that used to live in supervisor.py and
 peer_review_agent.py — those modules now call get_settings(db) at the point
 of use instead of reading module-level constants, so an Admin Portal change

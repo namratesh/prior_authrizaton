@@ -70,7 +70,7 @@ function ConnectedNodes() {
   );
 }
 
-// DEMO-MOCKED: single login gate for the whole app; hardcoded creds per role
+// MVP-MOCKED: single login gate for the whole app; hardcoded creds per role
 // (see store/auth.ts). Not a real auth/session backend — see CLAUDE.md scope.
 export default function Login() {
   const navigate = useNavigate();
@@ -216,7 +216,7 @@ export default function Login() {
           </form>
 
           <div className="mt-6 rounded-lg border border-border bg-muted/60 px-3 py-2 text-center text-xs text-muted-foreground">
-            Demo credentials — <span className="font-medium text-foreground">{ROLE_CREDENTIALS[role].username}</span> / {ROLE_CREDENTIALS[role].password}
+            MVP credentials — <span className="font-medium text-foreground">{ROLE_CREDENTIALS[role].username}</span> / {ROLE_CREDENTIALS[role].password}
           </div>
         </motion.div>
       </div>

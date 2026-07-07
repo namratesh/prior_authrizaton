@@ -20,7 +20,7 @@ flowchart TD
     cost --> alternative
     rag --> alternative
 
-    alternative["alternative\nDEMO-MOCKED\njoin node + hardcoded\nprocedure alt. mapping"]
+    alternative["alternative\nMVP-MOCKED\njoin node + hardcoded\nprocedure alt. mapping"]
     alternative --> peer_review
 
     peer_review["peer_review\nLayer 1: evaluate_hard_gates() — deterministic\nLOW_CONFIDENCE_EXTRACTION (conf < 0.85)\nFINANCIAL_EXCEPTION / RATE_UNAVAILABLE\nPOLICY_AMBIGUOUS\n---\nLayer 2: generate_rationale() — LLM\n(can only ADD reasons, never suppress)"]

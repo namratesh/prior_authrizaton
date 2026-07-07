@@ -29,7 +29,7 @@ _executor = ThreadPoolExecutor(max_workers=8, thread_name_prefix="llm-call")
 class LLMTimeoutError(TimeoutError):
     """Raised when a generate_text call exceeds its timeout.
 
-    // DEMO-REAL: every LLM call in this system goes through generate_text, so
+    // MVP-REAL: every LLM call in this system goes through generate_text, so
     every call site inherits this timeout. Per CLAUDE.md's reliability rules,
     callers must catch this (or Exception generally) and fail SAFE — i.e.
     route to human review — never treat a timeout as success.
@@ -136,7 +136,7 @@ def generate_text(
 
     Every call is bounded by `timeout` seconds (default DEFAULT_TIMEOUT_SECONDS
     = 10, per CLAUDE.md's reliability rules — no LLM call may hang the graph
-    during a live demo). Raises LLMTimeoutError on expiry; callers must treat
+    during a live walkthrough). Raises LLMTimeoutError on expiry; callers must treat
     that as a failure and fail SAFE (route to human review), never as success.
     """
     name = (provider or DEFAULT_PROVIDER).lower()

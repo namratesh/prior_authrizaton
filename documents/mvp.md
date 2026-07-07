@@ -1,19 +1,19 @@
-# AgenticPA Demo Cases — Approved / Rejected / Info Needed / Human Approval
+# AgenticPA MVP Cases — Approved / Rejected / Info Needed / Human Approval
 
-Six demo Prior Authorization cases built to show the full reasoning chain in
+Six MVP Prior Authorization cases built to show the full reasoning chain in
 one sitting: document-grounded coverage decisions (real AARP Medicare EOC
 language via RAG), CMS-CSV-based cost math (real RVU/GPCI files run through
 the actual Medicare payment formula), and every terminal outcome the
 reviewer pipeline supports.
 
 Unlike the QA suite in `documents/test_cases/` (20 scenarios covering every
-hard gate in isolation for testing), these 6 are curated for a live demo
+hard gate in isolation for testing), these 6 are curated for a live MVP
 narrative and are all grounded in real source documents:
 
 - **Policy/coverage reasoning** comes from `aarp_policies/AATX26LP0337564_001.pdf`
   (2026 Evidence of Coverage, AARP Medicare Advantage Patriot No Rx TX-MA05),
   already ingested into the `aarp_policies` Qdrant collection. RAG citations
-  in the demo below quote the actual EOC page numbers.
+  in the MVP below quote the actual EOC page numbers.
 - **Cost reasoning** comes from the real CMS files in `backend/data/rates/`
   (`PPRRVU2026_Jan_nonQPP.csv` for RVUs, `GPCI2026.csv` for geographic
   adjustment, `26LOCCO.csv` for locality lookup), run through the formula in
@@ -23,7 +23,7 @@ narrative and are all grounded in real source documents:
   rate = (work_rvu * work_gpci + pe_rvu * pe_gpci + mp_rvu * mp_gpci) * 33.4009
   ```
 
-PDFs for all 6 cases are already generated in `documents/demo_pdfs/` (see
+PDFs for all 6 cases are already generated in `documents/mvp_pdfs/` (see
 "Generating the PDFs" below to regenerate). Zip codes reuse the 5 known-good
 localities from `backend/scripts/seed_hero_cases.py` /
 `backend/app/data/zip_county_subset.csv` (`90210`, `36104`, `10001`, `60601`,
@@ -66,7 +66,7 @@ left blank).
   - Billed $1,300 vs. benchmark $1,213.90 → **+7.1% variance**, well inside the 20% `FINANCIAL_EXCEPTION` threshold.
 - RAG retrieves the EOC's covered-services language for medically necessary joint replacement (Chapter 4 Medical Benefits Chart) — no exclusion, no ambiguity.
 
-**Expected demo flow:** case may still pause on a minor/soft gate (e.g. extraction confidence) — if so, resolve with reviewer action `approve`, citing the clean diagnosis/procedure match and the 7.1% variance. `final_status="Approved"`.
+**Expected MVP flow:** case may still pause on a minor/soft gate (e.g. extraction confidence) — if so, resolve with reviewer action `approve`, citing the clean diagnosis/procedure match and the 7.1% variance. `final_status="Approved"`.
 
 ---
 
@@ -86,7 +86,7 @@ left blank).
 - RAG should retrieve this exact clause for the query — this is a real EOC exclusion, not an invented rule.
 - Cost is not the driver here: benchmark ≈ (3.29×1.000 + 6.67×0.875 + 0.42×0.566) × 33.4009 ≈ **$312.80**; billed $350 is only ~11.9% over, nowhere near the overcharge threshold — the denial is entirely policy-driven, cleanly isolating the reasoning path.
 
-**Expected demo flow:** reviewer resolves with action `deny`, reason citing the page-118 EOC exclusion clause returned by RAG. `final_status="Denied"`.
+**Expected MVP flow:** reviewer resolves with action `deny`, reason citing the page-118 EOC exclusion clause returned by RAG. `final_status="Denied"`.
 
 ---
 
@@ -103,7 +103,7 @@ left blank).
 - Cost is deliberately kept unremarkable so it isn't also flagged: benchmark ≈ (11.70×1.064 + 11.35×1.162 + 3.84×1.586) × 33.4009 ≈ **$1,059.70**; billed $1,100 is only ~3.8% over.
 - This isolates the "the AI reasons about clinical appropriateness, not just codes matching a list" narrative.
 
-**Expected demo flow:** reviewer resolves with action `deny`, reason citing the diagnosis/procedure mismatch flagged in the Rationale Panel. `final_status="Denied"`.
+**Expected MVP flow:** reviewer resolves with action `deny`, reason citing the diagnosis/procedure mismatch flagged in the Rationale Panel. `final_status="Denied"`.
 
 ---
 
@@ -124,7 +124,7 @@ left blank).
   - Total RVU-adjusted = 12.956 × $33.4009 ≈ **$432.90 benchmark**
   - Billed $5,000 vs. benchmark $432.90 → **+1,055% variance**, triggering `FINANCIAL_EXCEPTION` by a wide, unambiguous margin.
 
-**Expected demo flow:** `FINANCIAL_EXCEPTION` fires automatically. Reviewer resolves with action `deny`, reason citing the exact variance percent and dollar figures from the Financial payload. `final_status="Denied"`.
+**Expected MVP flow:** `FINANCIAL_EXCEPTION` fires automatically. Reviewer resolves with action `deny`, reason citing the exact variance percent and dollar figures from the Financial payload. `final_status="Denied"`.
 
 ---
 
@@ -141,7 +141,7 @@ left blank).
 - Modeled on the same handwritten/low-legibility pattern already proven in `documents/test_cases/02_low_confidence_handwritten.txt` — genuinely ambiguous extraction (missing NPI, uncertain CPT code, approximate DOB), not an artificially forced state.
 - Intake's real extraction-confidence score should fall below the 0.85 threshold, firing `LOW_CONFIDENCE_EXTRACTION` for a genuine reason (the source text is actually ambiguous).
 
-**Expected demo flow:** case pauses at human review. Reviewer issues action `clarify` with a concrete question (e.g. "Please confirm the exact CPT code for the knee injection — 20605 or 20610 — and the provider NPI"). Routing sets `case_status="awaiting_provider_response"`, `interrupt_reason="Awaiting Provider Response: ..."`. This is the live "Info Needed" state — use the new `ProviderResponseForm.tsx` to submit a provider reply and show the loop resuming.
+**Expected MVP flow:** case pauses at human review. Reviewer issues action `clarify` with a concrete question (e.g. "Please confirm the exact CPT code for the knee injection — 20605 or 20610 — and the provider NPI"). Routing sets `case_status="awaiting_provider_response"`, `interrupt_reason="Awaiting Provider Response: ..."`. This is the live "Info Needed" state — use the new `ProviderResponseForm.tsx` to submit a provider reply and show the loop resuming.
 
 ---
 
@@ -162,21 +162,21 @@ left blank).
   - Total RVU-adjusted = 36.26 × $33.4009 ≈ **$1,211.30 benchmark**
   - Billed $1,800 vs. benchmark $1,211.30 → **+48.6% variance** — real overcharge, but not the extreme 1,000%+ seen in PA-104. This is a genuinely borderline number, appropriate for human judgment rather than an obvious auto-deny.
 
-**Expected demo flow:** `FINANCIAL_EXCEPTION` fires. **Do not resolve this case** — leave it sitting at `needs_human_review=True`, `final_status=None` in the Reviewer Portal so you can approve or deny it live during the demo, showing the real interrupt/resume mechanism (a genuine LangGraph `interrupt`, checkpointed to Postgres, not a UI-faked pause).
+**Expected MVP flow:** `FINANCIAL_EXCEPTION` fires. **Do not resolve this case** — leave it sitting at `needs_human_review=True`, `final_status=None` in the Reviewer Portal so you can approve or deny it live during the MVP, showing the real interrupt/resume mechanism (a genuine LangGraph `interrupt`, checkpointed to Postgres, not a UI-faked pause).
 
 ---
 
 ## Generating the PDFs
 
 ```bash
-conda run -n pa_hack python3 documents/generate_demo_pdfs.py
+conda run -n pa_hack python3 documents/generate_mvp_pdfs.py
 ```
 
-Writes all 6 PDFs into `documents/demo_pdfs/`. Safe to re-run — it always
+Writes all 6 PDFs into `documents/mvp_pdfs/`. Safe to re-run — it always
 regenerates the same 6 files. Each PDF contains **only** the raw intake
 document (patient/diagnosis/procedure/billing) — no title, case key, or
 outcome label, so it reads like a genuine PA request and doesn't give away
-the intended demo outcome. The query for each case is **not** in the PDF —
+the intended MVP outcome. The query for each case is **not** in the PDF —
 it must be typed into the Patient Portal's query field separately (see the
 table above and each section's "Query" line); it is not parsed out of the
 PDF by Intake.
@@ -185,14 +185,14 @@ PDF by Intake.
 
 Upload each PDF via the Patient Portal (`POST /api/v1/upload`) paired with
 its query from the table above, then work each one to its terminal state in
-the Reviewer Portal per the "Expected demo flow" notes:
+the Reviewer Portal per the "Expected MVP flow" notes:
 
 1. PA-101 → reviewer **Approve**
 2. PA-102 → reviewer **Deny** (cite EOC page 118 exclusion)
 3. PA-103 → reviewer **Deny** (cite diagnosis/procedure mismatch)
 4. PA-104 → reviewer **Deny** (cite variance %)
 5. PA-105 → reviewer **Request Clarification**, then submit a provider response to show the loop
-6. PA-106 → leave **pending** for live approve/deny during the demo
+6. PA-106 → leave **pending** for live approve/deny during the MVP
 
 Note: exact hard-gate behavior depends on live extraction-confidence scores
 and RAG match quality at run time (same caveat as

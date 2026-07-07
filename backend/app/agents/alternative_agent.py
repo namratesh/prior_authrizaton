@@ -1,11 +1,11 @@
 """
 Alternative Therapy Mapper.
 
-// DEMO-MOCKED: the CPT->alternative-CPT mapping table below is hardcoded (2-3
+// MVP-MOCKED: the CPT->alternative-CPT mapping table below is hardcoded (2-3
 entries), not a real clinical-guideline engine. This is explicitly scoped as
-DEMO-MOCKED in CLAUDE.md, not a TODO.
+MVP-MOCKED in CLAUDE.md, not a TODO.
 
-// DEMO-REAL: once a mapping fires, the alternative's dollar cost is computed
+// MVP-REAL: once a mapping fires, the alternative's dollar cost is computed
 via the same real CMS rate lookup (app.core.cms_rates.get_cms_rate) used by
 the Cost agent — the savings number shown to the reviewer is not fabricated.
 

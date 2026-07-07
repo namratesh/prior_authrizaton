@@ -15,7 +15,7 @@ pairing it with the **query** listed in the table below (the query drives
 Intake's `relevant_agents` classification — it must be submitted with the
 PDF, not left blank).
 
-**Important caveat on demo data dependency:** several scenarios below
+**Important caveat on MVP data dependency:** several scenarios below
 (overcharge, rate-unavailable, policy-ambiguous, step-therapy, alternative
 therapy) depend on which CPT/ICD codes and ZIP codes are represented in the
 seeded `RvuValue`/`GpciValue`/`ZipLocality`/Qdrant EOC corpus at the time
@@ -58,7 +58,7 @@ Portal's submission form.
 | 20 | `20_multi_code_stress_test.txt` | "Please review full coverage and cost for all items on this request." | none expected, or `POLICY_AMBIGUOUS` if RAG can't disambiguate | Multi-value ICD-10/CPT list extraction (6 codes) |
 
 That's 20 document-based scenarios (exceeds the ~15-18 target to leave
-margin for demo-data variance). Scenarios 13-19 are designed to be run
+margin for MVP-data variance). Scenarios 13-19 are designed to be run
 **together, 3+ times each with varied outcomes** (some approved, some
 denied via reviewer override) so that each age/region cohort accumulates
 enough finalized cases to clear `MIN_COHORT_SIZE = 3` and actually appear

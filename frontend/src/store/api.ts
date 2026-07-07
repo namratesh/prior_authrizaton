@@ -1,4 +1,4 @@
-// DEMO-REAL: thin fetch wrappers over the 5 FastAPI endpoints in CLAUDE.md's API table.
+// MVP-REAL: thin fetch wrappers over the 5 FastAPI endpoints in CLAUDE.md's API table.
 // In production (docker-compose), nginx proxies /api/ to the backend container,
 // so requests stay same-origin and no build-time API URL needs to be baked in.
 // In dev (`npm run dev`), there's no proxy, so fall back to the local backend port.
@@ -40,9 +40,13 @@ export interface ReviewResponse {
 }
 
 export interface FairnessCohort {
+  dimension: "age" | "region" | "provider" | "service";
   cohort: string;
   total: number;
   approval_rate: number;
+  ci_low: number;
+  ci_high: number;
+  significant_disparity: boolean;
 }
 
 export interface Segment {

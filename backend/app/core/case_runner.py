@@ -1,7 +1,7 @@
 """
 Bridges LangGraph state <-> the `cases`/`audit_logs` Postgres tables.
 
-// DEMO-REAL
+// MVP-REAL
 
 The graph itself only persists via the PostgresSaver checkpointer (keyed by
 thread_id=case_id) — that's enough to resume an interrupt, but it isn't a

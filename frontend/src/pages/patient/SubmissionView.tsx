@@ -2,12 +2,12 @@ import { useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { UploadCloud, FileText } from "lucide-react";
 import { uploadCase } from "@/store/api";
-import { DEMO_PATIENT } from "@/store/useAppStore";
+import { MVP_PATIENT } from "@/store/useAppStore";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 
-const FIELDS: { label: string; key: keyof typeof DEMO_PATIENT }[] = [
+const FIELDS: { label: string; key: keyof typeof MVP_PATIENT }[] = [
   { label: "Patient Name", key: "name" },
   { label: "Date of Birth", key: "dob" },
   { label: "Member ID", key: "memberId" },
@@ -49,7 +49,7 @@ export default function SubmissionView({ onUploaded }: { onUploaded: (caseId: st
           {FIELDS.map(({ label, key }) => (
             <div key={key}>
               <p className="text-xs text-muted-foreground">{label}</p>
-              <p className="font-medium">{DEMO_PATIENT[key]}</p>
+              <p className="font-medium">{MVP_PATIENT[key]}</p>
             </div>
           ))}
         </CardContent>

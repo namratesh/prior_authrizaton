@@ -1,7 +1,7 @@
 """
 AgenticPAState — the single shared state object passed through the LangGraph.
 
-// DEMO-REAL: this is the actual state schema used by the graph, not a mock.
+// MVP-REAL: this is the actual state schema used by the graph, not a mock.
 """
 from datetime import datetime
 from typing import Any, Literal, Optional

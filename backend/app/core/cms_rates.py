@@ -2,7 +2,7 @@
 Real CMS Physician Fee Schedule rate lookup: zip -> locality -> GPCI, joined
 against RVUs, run through the standard Medicare payment formula.
 
-// DEMO-REAL
+// MVP-REAL
 
     rate = (work_rvu * work_gpci + pe_rvu * pe_gpci + mp_rvu * mp_gpci) * CF
 

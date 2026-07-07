@@ -1,7 +1,7 @@
 """
 AARP Medicare RAG agent.
 
-// DEMO-REAL
+// MVP-REAL
 
 Retrieval only: calls the hybrid (dense+sparse) Qdrant search built in
 app/core/policy_search.py against the ingested EOC/SOB policy chunks. No LLM

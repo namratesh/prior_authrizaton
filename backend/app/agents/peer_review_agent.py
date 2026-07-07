@@ -1,7 +1,7 @@
 """
 Peer-Review Compliance Auditor.
 
-// DEMO-REAL (deterministic hard-gate) + // DEMO-REAL (LLM rationale layer,
+// MVP-REAL (deterministic hard-gate) + // MVP-REAL (LLM rationale layer,
 translation only — see rule 1 in CLAUDE.md)
 
 Two layers, run in strict order:

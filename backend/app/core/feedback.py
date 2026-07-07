@@ -2,7 +2,7 @@
 Feedback-correction storage and lookup — the self-improving loop described in
 CLAUDE.md's "Differentiator" section.
 
-// DEMO-REAL
+// MVP-REAL
 
 Corrections are keyed by (icd10_family, cpt_family). Lookup is an indexed
 exact-match query on that family pair, not a vector similarity search: an

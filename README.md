@@ -1,6 +1,6 @@
 # AgenticPA
 
-Multi-agent Prior Authorization system for UHG AARP Medicare — clinical RAG, financial benchmarking, human-in-the-loop review, and a self-improving feedback loop. Built for a hackathon: a tight, real, demoable end-to-end path over feature breadth. See `documents/FULL_DOCUMENTATION.md` for the full product/architecture spec.
+Multi-agent Prior Authorization system for UHG AARP Medicare — clinical RAG, financial benchmarking, human-in-the-loop review, and a self-improving feedback loop. Built for a hackathon: a tight, real, presentable end-to-end path over feature breadth. See `documents/FULL_DOCUMENTATION.md` for the full product/architecture spec.
 
 ## Architecture
 
@@ -55,7 +55,7 @@ flowchart TB
         Route{"route_after_intake"}
         Cost["cost agent\ndeterministic\nCMS rate vs billed\n>20% -> FINANCIAL_EXCEPTION"]
         Rag["rag agent\ndeterministic\nQdrant hybrid search\n<0.70 -> POLICY_AMBIGUOUS"]
-        Alt["alternative agent\nDEMO-MOCKED join node"]
+        Alt["alternative agent\nMVP-MOCKED join node"]
         Peer["peer_review agent\nLayer1: hard gates (code)\nLayer2: LLM rationale\n(adds reasons, never suppresses)"]
         Gate{"needs_human_review?"}
         Human["human_review\nreal LangGraph interrupt()\ncheckpointed thread_id=case_id"]
@@ -226,9 +226,9 @@ docker compose up --build
 | Redis | 6379 |
 | Qdrant | 6333 |
 
-## Demo login (mocked auth)
+## MVP login (mocked auth)
 
-Three hardcoded roles, credentials in `.env` / `frontend/.env`: `patient_demo`, `reviewer_demo`, `admin_demo`.
+Three hardcoded roles, credentials in `.env` / `frontend/.env`: `patient_mvp`, `reviewer_mvp`, `admin_mvp`.
 
 ## Key API endpoints
 
@@ -243,5 +243,5 @@ Three hardcoded roles, credentials in `.env` / `frontend/.env`: `patient_demo`, 
 ## Notes
 
 - Synthetic data only (Faker-generated) — no real PHI.
-- Code marks `// DEMO-REAL` vs `// DEMO-MOCKED` on every agent/feature so mocked pieces (Alternative Therapy Mapper, Bias & Fairness Gauge, auth) are never oversold as live.
+- Code marks `// MVP-REAL` vs `// MVP-MOCKED` on every agent/feature so mocked pieces (Alternative Therapy Mapper, Bias & Fairness Gauge, auth) are never oversold as live.
 - `.env` is gitignored; only `.env.example` is committed.

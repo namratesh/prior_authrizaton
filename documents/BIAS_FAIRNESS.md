@@ -61,8 +61,8 @@ material. See §6 for how to talk about this honestly.
 | Dashboard rendering | `frontend/src/pages/AdminPortal.tsx` (`BiasFairnessCard`) |
 | Unit tests | `backend/tests/test_fairness.py` |
 
-`fairness.py` is marked `// DEMO-REAL` in its module docstring — it replaced
-an earlier, explicitly `DEMO-MOCKED` hardcoded constant
+`fairness.py` is marked `// MVP-REAL` in its module docstring — it replaced
+an earlier, explicitly `MVP-MOCKED` hardcoded constant
 (`BIAS_GAUGE_DATA`) that used to live in `AdminPortal.tsx`. The gauge is
 computed live from the `cases` table, not from sample/fixture data.
 
@@ -114,7 +114,7 @@ ZIP_PREFIX_REGION = {
 This is deliberately coarse: a single digit only distinguishes ~10 macro
 regions, not states or counties. The tradeoff is explicit — fine enough to
 surface a genuine regional skew if one exists, coarse enough that a small
-demo/pilot dataset still produces cohorts large enough to be meaningful
+MVP/pilot dataset still produces cohorts large enough to be meaningful
 (see §3.3).
 
 ### 3.3 Cohort aggregation — `compute_fairness_cohorts(rows)`
@@ -234,7 +234,7 @@ proxies to make or alter any individual adjudication decision.*
 | No statistical significance testing | `approval_rate` is a raw proportion; there is no confidence interval, p-value, or multiple-comparison correction. `MIN_COHORT_SIZE = 3` is a floor against the worst noise, not a statistical guarantee of significance. |
 | No intersectional analysis | Age and region are computed independently, not as an age×region cross-tab — a cohort that's simultaneously old *and* Southern isn't visible as its own bucket. |
 | No feedback loop | As covered in §5, findings here don't change any decision. This is a monitoring tool, not a bias-correction system. |
-| Small demo dataset | With only a handful of seeded Hero Cases, most cohorts will be dropped by the `MIN_COHORT_SIZE` threshold; the gauge only becomes meaningful at moderate case volume. |
+| Small MVP dataset | With only a handful of seeded Hero Cases, most cohorts will be dropped by the `MIN_COHORT_SIZE` threshold; the gauge only becomes meaningful at moderate case volume. |
 
 ---
 

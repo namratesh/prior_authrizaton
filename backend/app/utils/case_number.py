@@ -1,6 +1,6 @@
 """Human-readable case number formatting — PA-<year>-<seq>.
 
-// DEMO-REAL
+// MVP-REAL
 """
 from datetime import datetime
 

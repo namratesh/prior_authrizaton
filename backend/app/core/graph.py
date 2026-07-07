@@ -1,7 +1,7 @@
 """
 LangGraph wiring for AgenticPA.
 
-// DEMO-REAL
+// MVP-REAL
 
 Graph shape:
 
@@ -37,7 +37,7 @@ requests/process restarts.
 handled entirely inside `human_review_node` as a self-loop — the reviewer's
 free-text question is folded into `interrupt_reason` and the SAME interrupt
 point re-fires, per the CLAUDE.md spec ("pauses at the same interrupt point,
-not a new node"). The "Provider Responded" stub is DEMO-MOCKED: it clears the
+not a new node"). The "Provider Responded" stub is MVP-MOCKED: it clears the
 "awaiting provider" framing and re-pauses at the same point for the reviewer,
 with no real provider-facing notification system behind it.
 """

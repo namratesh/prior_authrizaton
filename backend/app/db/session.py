@@ -1,7 +1,7 @@
 """
 Engine + session factory.
 
-// DEMO-REAL
+// MVP-REAL
 """
 import os
 from collections.abc import Generator

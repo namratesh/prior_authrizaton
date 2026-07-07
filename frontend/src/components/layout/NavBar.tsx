@@ -75,7 +75,7 @@ export default function NavBar() {
           </div>
         )}
 
-        {/* DEMO-MOCKED: single hardcoded login gate stands in for real auth. */}
+        {/* MVP-MOCKED: single hardcoded login gate stands in for real auth. */}
         {auth && (
           <div className="ml-auto">
             <DropdownMenu>

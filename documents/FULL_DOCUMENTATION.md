@@ -3,7 +3,7 @@
 ## 1. What this system is
 
 AgenticPA is a multi-agent Prior Authorization (PA) processing system built
-for a Medicare-Advantage-style plan (AARP Medicare, per the demo/hackathon
+for a Medicare-Advantage-style plan (AARP Medicare, per the MVP/hackathon
 framing). A patient uploads a PA request document (clinical note + billing
 sheet, as a PDF) along with a free-text description of what they're asking
 about. The system automatically:
@@ -27,13 +27,13 @@ about. The system automatically:
     bias/fairness cohort disparity, per-segment override rates) on an Admin
     Portal.
 
-**Every mocked component is explicitly labeled** `// DEMO-MOCKED` in code
+**Every mocked component is explicitly labeled** `// MVP-MOCKED` in code
 comments (currently: the Alternative Therapy Mapper's lookup table, the
-FHIR stub's schema fidelity, and the 3 hardcoded demo user identities used
+FHIR stub's schema fidelity, and the 3 hardcoded MVP user identities used
 in place of real auth). Everything else — cost math, policy retrieval,
 hard-gate logic, fairness cohort computation, SLA/settings, the feedback
 loop — runs on real logic against real (synthetic, non-PHI) data, and is
-labeled `// DEMO-REAL`.
+labeled `// MVP-REAL`.
 
 ---
 
@@ -193,13 +193,13 @@ query string composed of `diagnosis_summary` + ICD-10s + CPTs.
   `policy_match_confidence` (top score), and `step_therapy_required` (true
   if any matched clause contains the phrase "step therapy").
 
-### 3.4 Alternative Therapy Mapper (`alternative_agent.py`) — `DEMO-MOCKED`
+### 3.4 Alternative Therapy Mapper (`alternative_agent.py`) — `MVP-MOCKED`
 
 A hardcoded lookup table of (ICD-10 family, CPT) → (alternative CPT,
 description) — currently 3 entries, e.g. M17 (knee osteoarthritis) + 27447
 (total knee arthroplasty) → 20610 (conservative injection). The **cost** of
 the suggested alternative is computed via the same real CMS rate lookup
-used by the Cost agent (this part is `DEMO-REAL`), so the savings number
+used by the Cost agent (this part is `MVP-REAL`), so the savings number
 shown is genuine even though the mapping itself is a small illustrative
 table, not a clinical-guidelines engine.
 
@@ -233,7 +233,7 @@ still stand and `rationale` falls back to an error string.
 LLM translation only. Writes a plain-English decision letter targeting
 Flesch Reading Ease > 60 (`FLESCH_TARGET`). If the LLM fails, or the
 generated letter scores below target, falls back to a deterministic
-`_template_letter`. Also builds a `DEMO-MOCKED` FHIR-shaped `ClaimResponse`
+`_template_letter`. Also builds a `MVP-MOCKED` FHIR-shaped `ClaimResponse`
 stub (illustrative structure, not schema-validated against the real FHIR
 spec).
 
@@ -258,7 +258,7 @@ Portal (`frontend/src/pages/ReviewerPortal.tsx`) presents:
     correction.
   - `clarify` — self-loop: folds the reviewer's question into
     `interrupt_reason`, sets `case_status = "awaiting_provider_response"`,
-    re-pauses. A demo-mocked "Mark Provider Responded" action
+    re-pauses. A MVP-mocked "Mark Provider Responded" action
     (`provider_responded`) simulates the provider replying and re-pauses
     for the reviewer.
 - **Rationale Panel**: expedite banner, "Needs Human Review" alert (hard
@@ -305,14 +305,14 @@ Portal's `SystemConfigCard`.
 
 | Table | Purpose |
 |---|---|
-| `users` | Stub role table (`patient`/`reviewer`); no real auth — 3 demo identities seeded at startup |
+| `users` | Stub role table (`patient`/`reviewer`); no real auth — 3 MVP identities seeded at startup |
 | `cases` | One row per PA case: identity `case_number` (→ human-readable `PA-YYYY-NNNN`), current phase, final status, `needs_human_review`, assignment (reviewer + timestamp), 4 JSONB payload columns mirroring `AgenticPAState`, timestamps |
 | `audit_logs` | Insert-only trace (agent, action, JSONB details, timestamp) — enforced insert-only by a DB trigger, not just app-layer discipline |
 | `feedback_corrections` | Self-improving loop: ICD-10/CPT family (indexed, not unique), case, reviewer, corrected field, original/corrected value |
 | `rvu_values` | CMS Physician Fee Schedule RVUs per CPT (work/PE/MP + status) |
 | `gpci_values` | Geographic Practice Cost Indices per (state, locality) |
 | `locality_counties` | State/locality → county mapping (MAC, fee schedule area) |
-| `zip_localities` | ZIP → (county, state, locality) — currently only the 5 demo "hero" ZIPs |
+| `zip_localities` | ZIP → (county, state, locality) — currently only the 5 MVP "hero" ZIPs |
 | `admin_settings` | Single-row settings table backing `settings_store.py` |
 
 ---
@@ -337,7 +337,7 @@ Portal's `SystemConfigCard`.
 
 Rate limiting (`slowapi`, IP-keyed) is scoped narrowly to the
 highest-cost/most-exposed write endpoints (`upload`, `assign`,
-`adjudicate`) on this unauthenticated demo deployment — it is not applied
+`adjudicate`) on this unauthenticated MVP deployment — it is not applied
 globally.
 
 ---
@@ -420,9 +420,9 @@ bring-up (Postgres/Redis/Qdrant via Docker + FastAPI backend + Vite
 frontend) used to verify changes end-to-end. Backend runs under the conda
 environment `pa_hack`, not system/base Python.
 
-Demo login: 3 hardcoded roles (`patient_demo`, `reviewer_demo`,
-`admin_demo`) — auth is mocked, not real, for this demo deployment. All
-seed/demo data is synthetic (Faker-generated); no real PHI is used or
+MVP login: 3 hardcoded roles (`patient_mvp`, `reviewer_mvp`,
+`admin_mvp`) — auth is mocked, not real, for this MVP deployment. All
+seed/MVP data is synthetic (Faker-generated); no real PHI is used or
 stored anywhere in this repository.
 
 ---
@@ -433,8 +433,8 @@ stored anywhere in this repository.
 |---|---|
 | Hard gate | A deterministic, non-LLM rule in `evaluate_hard_gates` that forces human review |
 | Soft escalation | An *additional* reason for review proposed by the rationale LLM — can only add, never remove, a hard gate |
-| DEMO-REAL | Code comment marker: this logic runs against real computed/retrieved data |
-| DEMO-MOCKED | Code comment marker: this logic is an illustrative stand-in (hardcoded table, unvalidated schema, fake auth) |
+| MVP-REAL | Code comment marker: this logic runs against real computed/retrieved data |
+| MVP-MOCKED | Code comment marker: this logic is an illustrative stand-in (hardcoded table, unvalidated schema, fake auth) |
 | Cohort | A fairness-gauge grouping (one age bucket or one region) with ≥3 finalized cases |
 | Finalized case | A case whose `final_status` is `Approved` or `Denied` (not NULL) |
 | Interrupt | A real LangGraph pause (`human_review_node`), checkpointed to Postgres, resumable across process restarts |

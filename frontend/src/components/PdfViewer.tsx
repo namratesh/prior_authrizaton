@@ -26,7 +26,7 @@ function billedAmountVariants(billedAmount?: number): string[] {
   return Array.from(new Set([fixed, withCommas, noDecimals]));
 }
 
-// DEMO-REAL: react-pdf's customTextRenderer runs once per real text item in
+// MVP-REAL: react-pdf's customTextRenderer runs once per real text item in
 // the actual rendered PDF text layer — this isn't a canned overlay image.
 // CPT/ICD-10/billed-amount highlights match against values Intake actually
 // extracted for this case (not a blind digit-pattern regex) so a 5-digit zip

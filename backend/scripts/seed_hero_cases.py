@@ -1,7 +1,7 @@
 """
 Seeds the 5 Hero Cases from CLAUDE.md through the real, wired LangGraph.
 
-// DEMO-REAL
+// MVP-REAL
 
 Safe to re-run: each Hero Case gets a deterministic case_id (uuid5 of a fixed
 namespace + "PA-00N"), and `start_case`/`case_runner._persist` upsert on that
@@ -22,7 +22,7 @@ The feedback-loop correction on PA-001 is captured via whichever path is live:
     documented behavior), there's no reviewer pause to correct through —
     the script falls back to inserting the correction directly via
     core.feedback.record_correction, documented here as a seed fixture rather
-    than a live reviewer action, so the PA-005 few-shot demo still has
+    than a live reviewer action, so the PA-005 few-shot walkthrough still has
     something to inject regardless of which path fired this run.
 """
 import sys
@@ -204,10 +204,10 @@ def ensure_pa001_correction(db, pa001_case_id: str) -> None:
 
 
 def main():
-    from app.core.fixtures import ensure_demo_users
+    from app.core.fixtures import ensure_mvp_users
 
     with SessionLocal() as db:
-        ensure_demo_users(db)
+        ensure_mvp_users(db)
 
         pa001_id = seed_case(db, "PA-001", HERO_CASES[0]["text"], HERO_CASES[0]["query"])
         ensure_pa001_correction(db, pa001_id)

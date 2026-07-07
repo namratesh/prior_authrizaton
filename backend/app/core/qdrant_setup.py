@@ -1,7 +1,7 @@
 """
 Qdrant collection for AARP EOC/SOB policy chunks — hybrid (dense + sparse) retrieval.
 
-// DEMO-REAL: this is the actual retrieval backend for the AARP Medicare RAG agent.
+// MVP-REAL: this is the actual retrieval backend for the AARP Medicare RAG agent.
 """
 import os
 

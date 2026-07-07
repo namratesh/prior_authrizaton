@@ -8,7 +8,8 @@ from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 
 from app.api.routes import router
-from app.core.fixtures import ensure_demo_users
+from app.core.mvp_fairness_seed import ensure_mvp_fairness_cases
+from app.core.fixtures import ensure_mvp_users
 from app.core.logging_config import RequestContextMiddleware, configure_logging
 from app.core.rate_limit import limiter
 from app.db.session import SessionLocal
@@ -17,7 +18,7 @@ from app.utils.policy_ingest import ensure_policies_ingested
 configure_logging()
 logger = logging.getLogger(__name__)
 
-# DEMO-REAL
+# MVP-REAL
 app = FastAPI(title="AgenticPA")
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
@@ -25,9 +26,10 @@ app.add_middleware(RequestContextMiddleware)
 
 
 @app.on_event("startup")
-def _seed_demo_users():
+def _seed_mvp_users():
     with SessionLocal() as db:
-        ensure_demo_users(db)
+        ensure_mvp_users(db)
+        ensure_mvp_fairness_cases(db)
 
 
 @app.on_event("startup")

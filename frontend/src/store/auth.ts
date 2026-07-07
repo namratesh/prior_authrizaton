@@ -1,4 +1,4 @@
-// DEMO-MOCKED: hardcoded per-role credentials, no real auth backend/session.
+// MVP-MOCKED: hardcoded per-role credentials, no real auth backend/session.
 // Override defaults via VITE_<ROLE>_USERNAME / VITE_<ROLE>_PASSWORD — see .env.example.
 export type Role = "patient" | "reviewer" | "admin";
 
@@ -10,17 +10,17 @@ interface RoleCredential {
 
 export const ROLE_CREDENTIALS: Record<Role, RoleCredential> = {
   patient: {
-    username: import.meta.env.VITE_PATIENT_USERNAME || "patient_demo",
+    username: import.meta.env.VITE_PATIENT_USERNAME || "patient_mvp",
     password: import.meta.env.VITE_PATIENT_PASSWORD || "patient123",
     label: "Patient",
   },
   reviewer: {
-    username: import.meta.env.VITE_REVIEWER_USERNAME || "reviewer_demo",
+    username: import.meta.env.VITE_REVIEWER_USERNAME || "reviewer_mvp",
     password: import.meta.env.VITE_REVIEWER_PASSWORD || "reviewer123",
     label: "Reviewer",
   },
   admin: {
-    username: import.meta.env.VITE_ADMIN_USERNAME || "admin_demo",
+    username: import.meta.env.VITE_ADMIN_USERNAME || "admin_mvp",
     password: import.meta.env.VITE_ADMIN_PASSWORD || "admin123",
     label: "Admin",
   },

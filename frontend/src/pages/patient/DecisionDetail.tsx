@@ -93,7 +93,7 @@ export default function DecisionDetail({ caseId, onBack }: { caseId: string; onB
             </div>
           </div>
 
-          {/* DEMO-MOCKED: visual-only secure message thread stub, no backend messaging. */}
+          {/* MVP-MOCKED: visual-only secure message thread stub, no backend messaging. */}
           <Dialog>
             <DialogTrigger asChild>
               <Button variant="default" className="mt-2">
@@ -113,7 +113,7 @@ export default function DecisionDetail({ caseId, onBack }: { caseId: string; onB
                   <Send size={15} /> Message sent to your Care Team
                 </p>
                 <p className="mt-1 text-teal-800">
-                  A member of our team will follow up with you shortly. (This is a demo
+                  A member of our team will follow up with you shortly. (This is an MVP
                   stub — no message is actually sent.)
                 </p>
               </div>

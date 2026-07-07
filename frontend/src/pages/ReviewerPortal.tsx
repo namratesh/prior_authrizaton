@@ -3,7 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import { ArrowLeft, ClipboardCheck, Inbox as InboxIcon, ChevronRight, Check, Pencil, MessageSquare, Ban, UserPlus, UserMinus } from "lucide-react";
 import { adjudicate, assignCase, unassignCase, getAdminMetrics, getReview, type ReviewResponse } from "../store/api";
-import { DEMO_REVIEWERS, useAppStore } from "../store/useAppStore";
+import { MVP_REVIEWERS, useAppStore } from "../store/useAppStore";
 import PdfViewer from "@/components/PdfViewer";
 import ReviewForm, { ConfidenceBadge, type FieldDiffs } from "@/components/ReviewForm";
 import RationalePanel from "@/components/RationalePanel";
@@ -89,7 +89,7 @@ function CaseQueue({ onSelect }: { onSelect: (caseId: string) => void }) {
           className="h-8 rounded-md border border-input bg-background px-2 text-xs text-foreground"
           aria-label="Active reviewer"
         >
-          {DEMO_REVIEWERS.map((r) => (
+          {MVP_REVIEWERS.map((r) => (
             <option key={r.id} value={r.id}>
               {r.name}
             </option>
@@ -312,7 +312,7 @@ export default function ReviewerPortal() {
               <AlertDescription>
                 Awaiting Provider Response: {review.routing.interrupt_reason}
               </AlertDescription>
-              {/* DEMO-MOCKED: manual button instead of a real provider-facing notification system. */}
+              {/* MVP-MOCKED: manual button instead of a real provider-facing notification system. */}
               <Button size="sm" variant="secondary" disabled={submitting} onClick={() => submit("provider_responded")}>
                 Mark Provider Responded
               </Button>

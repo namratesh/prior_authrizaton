@@ -1,7 +1,7 @@
 """
-Demo user fixtures.
+MVP user fixtures.
 
-// DEMO-MOCKED: Auth is hardcoded (no real login, per CLAUDE.md), but
+// MVP-MOCKED: Auth is hardcoded (no real login, per CLAUDE.md), but
 feedback_corrections.reviewer_id has a real FK to `users` — so the two
 hardcoded roles still need one real row each, or any reviewer adjudication
 that records a correction (modify/deny) fails with a ForeignKeyViolation.
@@ -10,12 +10,12 @@ Idempotent: safe to call on every app startup.
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
-DEMO_REVIEWER_ID = "reviewer-1"
-DEMO_REVIEWER_2_ID = "reviewer-2"
-DEMO_PATIENT_ID = "patient-1"
+MVP_REVIEWER_ID = "reviewer-1"
+MVP_REVIEWER_2_ID = "reviewer-2"
+MVP_PATIENT_ID = "patient-1"
 
 
-def ensure_demo_users(db: Session) -> None:
+def ensure_mvp_users(db: Session) -> None:
     db.execute(
         text(
             """
@@ -24,7 +24,7 @@ def ensure_demo_users(db: Session) -> None:
             ON CONFLICT (id) DO NOTHING
             """
         ),
-        {"id": DEMO_REVIEWER_ID, "name": "Demo Reviewer", "role": "reviewer"},
+        {"id": MVP_REVIEWER_ID, "name": "MVP Reviewer", "role": "reviewer"},
     )
     db.execute(
         text(
@@ -34,7 +34,7 @@ def ensure_demo_users(db: Session) -> None:
             ON CONFLICT (id) DO NOTHING
             """
         ),
-        {"id": DEMO_REVIEWER_2_ID, "name": "Demo Reviewer 2", "role": "reviewer"},
+        {"id": MVP_REVIEWER_2_ID, "name": "MVP Reviewer 2", "role": "reviewer"},
     )
     db.execute(
         text(
@@ -44,6 +44,6 @@ def ensure_demo_users(db: Session) -> None:
             ON CONFLICT (id) DO NOTHING
             """
         ),
-        {"id": DEMO_PATIENT_ID, "name": "Jane Doe", "role": "patient"},
+        {"id": MVP_PATIENT_ID, "name": "Jane Doe", "role": "patient"},
     )
     db.commit()

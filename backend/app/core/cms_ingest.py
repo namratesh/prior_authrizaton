@@ -3,7 +3,7 @@ Ingests real 2026 CMS Physician Fee Schedule data from local files in
 backend/data/rates/ into Postgres. No network calls — every file here was
 already on disk before this module was written.
 
-// DEMO-REAL
+// MVP-REAL
 
 Sources (all backend/data/rates/, verbatim CMS 2026 January release):
   - PPRRVU2026_Jan_nonQPP.csv  -> rvu_values      (Work/PE/MP RVUs per CPT/HCPCS)

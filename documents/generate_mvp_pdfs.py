@@ -1,22 +1,22 @@
 """
-Generates the 6 demo-case intake PDFs into documents/demo_pdfs/.
+Generates the 6 MVP-case intake PDFs into documents/mvp_pdfs/.
 
-Run with: conda run -n pa_hack python3 documents/generate_demo_pdfs.py
+Run with: conda run -n pa_hack python3 documents/generate_mvp_pdfs.py
 
 Each PDF is a standalone Prior Authorization Request document meant to be
 uploaded through the Patient Portal (POST /api/v1/upload), paired with the
-query text documented in documents/demo.md. Same document shape as
-backend/scripts/seed_hero_cases.py's HERO_CASES, kept separate so the demo
+query text documented in documents/MVP.md. Same document shape as
+backend/scripts/seed_hero_cases.py's HERO_CASES, kept separate so the MVP
 set (PA-101..PA-106) doesn't collide with the hero cases (PA-001..PA-005).
 """
 from pathlib import Path
 
 from fpdf import FPDF
 
-OUT_DIR = Path(__file__).resolve().parent / "demo_pdfs"
+OUT_DIR = Path(__file__).resolve().parent / "mvp_pdfs"
 OUT_DIR.mkdir(parents=True, exist_ok=True)
 
-DEMO_CASES = [
+MVP_CASES = [
     {
         "key": "PA-101",
         "filename": "PA-101_hip_replacement_request.pdf",
@@ -119,7 +119,7 @@ def write_pdf(case: dict) -> Path:
 
 
 def main():
-    for case in DEMO_CASES:
+    for case in MVP_CASES:
         path = write_pdf(case)
         print(f"[{case['key']}] wrote {path}")
 

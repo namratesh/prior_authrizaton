@@ -1,7 +1,7 @@
 """
 Cost Intelligence & Benchmarking agent.
 
-// DEMO-REAL
+// MVP-REAL
 
 Pure deterministic computation: no LLM call anywhere in this module (rule 1
 in CLAUDE.md — decisions are RAG retrieval + math + hardcoded rules, never a

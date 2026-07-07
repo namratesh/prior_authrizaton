@@ -2,7 +2,7 @@
 Whole-document text extraction for uploaded PA request PDFs (as opposed to
 pdf_chunker.py, which chunks EOC/SOB policy PDFs for ingestion into Qdrant).
 
-// DEMO-REAL: pdfplumber only, no Azure Document Intelligence fallback (out of scope).
+// MVP-REAL: pdfplumber only, no Azure Document Intelligence fallback (out of scope).
 """
 import io
 

@@ -1,7 +1,7 @@
 """
 SLA-aware Supervisor helpers.
 
-// DEMO-REAL: SLA deadline is a real, computed timestamp (not a display
+// MVP-REAL: SLA deadline is a real, computed timestamp (not a display
 fake); "expedite" is a real boolean comparison against it, evaluated fresh on
 every read rather than cached, so the Reviewer Portal's pulsing badge always
 reflects the true remaining time.

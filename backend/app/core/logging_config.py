@@ -1,6 +1,6 @@
 """JSON structured logging with per-request correlation.
 
-// DEMO-REAL: previously logging.basicConfig(level=WARNING) in main.py meant
+// MVP-REAL: previously logging.basicConfig(level=WARNING) in main.py meant
 almost nothing was logged, and what was had no request/case correlation and
 no consistent shape — unusable for any real log aggregator (CloudWatch,
 Datadog, etc). Every log line is now one JSON object on stdout; the

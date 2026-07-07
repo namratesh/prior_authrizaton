@@ -1,49 +1,11 @@
 import { useEffect, useState } from "react";
-import { getStatus, respondToCase, type StatusResponse } from "@/store/api";
+import { getStatus, type StatusResponse } from "@/store/api";
 import Timeline from "@/components/Timeline";
 import CostCard from "@/components/CostCard";
 import LoadingState from "@/components/LoadingState";
 import UrgencyBadge from "@/components/UrgencyBadge";
+import ProviderResponseForm from "@/components/ProviderResponseForm";
 import { Card, CardContent } from "@/components/ui/card";
-import { Textarea } from "@/components/ui/textarea";
-import { Button } from "@/components/ui/button";
-import { toast } from "@/components/ui/sonner";
-
-function ProviderResponseForm({ caseId, onSubmitted }: { caseId: string; onSubmitted: () => void }) {
-  const [response, setResponse] = useState("");
-  const [submitting, setSubmitting] = useState(false);
-
-  const submit = async () => {
-    if (!response.trim()) return;
-    setSubmitting(true);
-    try {
-      await respondToCase(caseId, response.trim());
-      setResponse("");
-      toast.success("Response sent — your case is back with the reviewer.");
-      onSubmitted();
-    } catch (e: any) {
-      toast.error(e?.message || "Couldn't send your response, please try again.");
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  return (
-    <Card className="p-4">
-      <p className="text-sm font-medium">Your response</p>
-      <Textarea
-        value={response}
-        onChange={(e) => setResponse(e.target.value)}
-        placeholder="Answer the reviewer's question here..."
-        rows={3}
-        className="mt-2"
-      />
-      <Button className="mt-3" disabled={!response.trim() || submitting} onClick={submit}>
-        {submitting ? "Sending..." : "Send response"}
-      </Button>
-    </Card>
-  );
-}
 
 export default function TimelineView({ caseId }: { caseId: string }) {
   const [status, setStatus] = useState<StatusResponse | null>(null);

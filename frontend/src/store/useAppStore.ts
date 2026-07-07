@@ -21,6 +21,7 @@ export const DEMO_REVIEWERS = [
 
 const CASE_HISTORY_KEY = "agenticpa_patient_case_history";
 const REVIEWER_ID_KEY = "agenticpa_active_reviewer_id";
+const ACTIVE_CASE_ID_KEY = "agenticpa_patient_active_case_id";
 
 function loadCaseHistory(): string[] {
   try {
@@ -34,6 +35,10 @@ function loadReviewerId(): string {
   return localStorage.getItem(REVIEWER_ID_KEY) || DEMO_REVIEWER_ID;
 }
 
+function loadActiveCaseId(): string | null {
+  return localStorage.getItem(ACTIVE_CASE_ID_KEY);
+}
+
 interface AppState {
   role: "patient" | "reviewer" | "admin";
   setRole: (role: AppState["role"]) => void;
@@ -41,6 +46,8 @@ interface AppState {
   addCaseToHistory: (caseId: string) => void;
   reviewerId: string;
   setReviewerId: (id: string) => void;
+  activeCaseId: string | null;
+  setActiveCaseId: (id: string | null) => void;
 }
 
 export const useAppStore = create<AppState>((set, get) => ({
@@ -56,5 +63,11 @@ export const useAppStore = create<AppState>((set, get) => ({
   setReviewerId: (id) => {
     localStorage.setItem(REVIEWER_ID_KEY, id);
     set({ reviewerId: id });
+  },
+  activeCaseId: loadActiveCaseId(),
+  setActiveCaseId: (id) => {
+    if (id) localStorage.setItem(ACTIVE_CASE_ID_KEY, id);
+    else localStorage.removeItem(ACTIVE_CASE_ID_KEY);
+    set({ activeCaseId: id });
   },
 }));

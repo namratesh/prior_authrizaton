@@ -26,7 +26,13 @@ function EmptyInboxArt() {
   );
 }
 
-export default function InboxView({ caseIds }: { caseIds: string[] }) {
+export default function InboxView({
+  caseIds,
+  onOpenTimeline,
+}: {
+  caseIds: string[];
+  onOpenTimeline: (caseId: string) => void;
+}) {
   const [selected, setSelected] = useState<string | null>(null);
   const [reviews, setReviews] = useState<Record<string, ReviewResponse>>({});
 
@@ -68,7 +74,15 @@ export default function InboxView({ caseIds }: { caseIds: string[] }) {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: i * 0.05 }}
           >
-            <button onClick={() => setSelected(id)} className="w-full text-left" disabled={!r}>
+            <button
+              onClick={() =>
+                r?.routing?.case_status === "awaiting_provider_response"
+                  ? onOpenTimeline(id)
+                  : setSelected(id)
+              }
+              className="w-full text-left"
+              disabled={!r}
+            >
               <Card className="flex items-center justify-between p-4 transition-shadow hover:shadow-elevated">
                 {r ? (
                   <>

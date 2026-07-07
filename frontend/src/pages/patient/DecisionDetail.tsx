@@ -3,6 +3,7 @@ import { ArrowLeft, MessageCircle, Send } from "lucide-react";
 import { getReview, type ReviewResponse } from "@/store/api";
 import StatusBadge from "@/components/StatusBadge";
 import LoadingState from "@/components/LoadingState";
+import ProviderResponseForm from "@/components/ProviderResponseForm";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -18,11 +19,19 @@ import {
 export default function DecisionDetail({ caseId, onBack }: { caseId: string; onBack: () => void }) {
   const [review, setReview] = useState<ReviewResponse | null>(null);
 
-  useEffect(() => {
+  const refresh = () => {
     getReview(caseId).then(setReview);
+  };
+
+  useEffect(() => {
+    refresh();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [caseId]);
 
   if (!review) return <LoadingState label="Loading decision..." />;
+
+  const awaitingProviderResponse = review.routing?.case_status === "awaiting_provider_response";
+  const interruptReason: string | undefined = review.routing?.interrupt_reason;
 
   return (
     <div className="mx-auto max-w-2xl space-y-6 p-6">
@@ -34,11 +43,24 @@ export default function DecisionDetail({ caseId, onBack }: { caseId: string; onB
         Back to Decision Inbox
       </button>
 
+      {awaitingProviderResponse && (
+        <div className="rounded-lg border border-radiant/30 bg-red-50/60 p-3">
+          <p className="text-xs font-semibold text-radiant">Reviewer's question</p>
+          <p className="mt-1 text-sm text-foreground/90">
+            {interruptReason?.replace(/^Awaiting Provider Response:\s*/, "") ||
+              "The reviewer needs more information before this case can proceed."}
+          </p>
+        </div>
+      )}
+      {awaitingProviderResponse && <ProviderResponseForm caseId={caseId} onSubmitted={refresh} />}
+
       <Card>
         <CardContent className="space-y-4 pt-6">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="font-display text-lg font-semibold">Decision: {review.final_status}</h2>
+              <h2 className="font-display text-lg font-semibold">
+                Decision: {review.final_status ?? "Pending"}
+              </h2>
               <p className="text-xs text-muted-foreground">Case {review.case_number}</p>
             </div>
             <StatusBadge status={review.final_status} />

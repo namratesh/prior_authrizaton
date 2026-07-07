@@ -21,11 +21,15 @@ const TAB_LABELS: Record<View, string> = {
 
 export default function PatientPortal() {
   const [view, setView] = useState<View>("submission");
-  const [activeCaseId, setActiveCaseId] = useState<string | null>(null);
-  const { caseHistory, addCaseToHistory } = useAppStore();
+  const { caseHistory, addCaseToHistory, activeCaseId, setActiveCaseId } = useAppStore();
 
   const handleUploaded = (caseId: string) => {
     addCaseToHistory(caseId);
+    setActiveCaseId(caseId);
+    setView("timeline");
+  };
+
+  const openCaseTimeline = (caseId: string) => {
     setActiveCaseId(caseId);
     setView("timeline");
   };
@@ -60,7 +64,7 @@ export default function PatientPortal() {
             Upload a request first to see its timeline.
           </div>
         ))}
-      {view === "inbox" && <InboxView caseIds={caseHistory} />}
+      {view === "inbox" && <InboxView caseIds={caseHistory} onOpenTimeline={openCaseTimeline} />}
     </div>
   );
 }

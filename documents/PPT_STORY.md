@@ -146,7 +146,8 @@ fairness."
 
 ### Slide 8 — Responsible AI · Fairness
 **On screen:** cohort charts (age band, region, provider, service) with a "CI excludes cohort
-mean" flag.
+mean" flag, and a **Method** toggle switching between the Wilson-interval view and a Bayesian
+Beta-Binomial posterior view (posterior mean, 95% credible interval, P(worse than overall)).
 
 **Say this:** State the two halves as two separate sentences, because conflating them is the
 single most common mistake in this room: *"First — we measure disparity. This is computed live
@@ -160,6 +161,13 @@ protects against a bad decision: *"the per-case hard gates never look at demogra
 only at how confident the extraction was, how far off the price was, how strong the policy
 match was."*
 
+Then show the toggle: *"We give two independent statistical lenses on the same data, not one.
+The Wilson interval answers 'is this gap bigger than sampling noise could explain.' The
+Bayesian view — a real Beta-Binomial posterior, not a label — answers a more direct question:
+'given everything we've observed, what's the probability this cohort is actually worse than
+average.' Same underlying cases, two ways of being honest about uncertainty, both computed with
+real, hand-verifiable statistics — no black-box library, no invented number."*
+
 **Anticipate — this slide draws the most pushback, prepare for it:**
 - "So what does prevent bias, if not this chart?" → the hard gates in Peer Review, which are
   blind to demographics by construction (answered above — have it ready verbatim).
@@ -167,8 +175,16 @@ match was."*
   the data model; age and ZIP-derived region are proxies, and ZIP-as-region is a known weak
   proxy — say this before they do, it reads as rigor, not a gap.
 - "3-case minimum sounds arbitrary." → it's a floor against literal noise (a 1-of-1 cohort
-  reporting 100% or 0%), not a claim of statistical significance — there's no p-value or CI
-  correction here, and that's stated in the doc, not hidden.
+  reporting 100% or 0%), not a claim of statistical significance. The Wilson interval has no
+  p-value or multiple-comparison correction, which is exactly why the Bayesian view exists
+  alongside it — a weakly-informative prior pulls small-n cohorts back toward the population
+  average instead of reporting a noisy 100%/0%, and that's a genuinely different (and
+  complementary) way of handling the same small-sample problem, not window dressing.
+- "Isn't 'Bayesian fairness' just a buzzword here?" → no — walk them to the code if asked:
+  `_betainc`/`_beta_quantile` in `backend/app/core/fairness.py` are a hand-rolled regularized
+  incomplete beta function (the same algorithm inside `scipy.special.betainc`), the prior is a
+  disclosed `Beta(4·overall_rate, 4·(1-overall_rate))`, and every number is unit-tested
+  (`backend/tests/test_fairness.py`) against known closed forms.
 
 **Transition line:** "Fairness is about aggregate disparity. Explainability is about a single
 decision — here's what that looks like."
@@ -177,16 +193,35 @@ decision — here's what that looks like."
 
 ### Slide 9 — Responsible AI · Explainability
 **On screen:** the reviewer rationale panel for PA-104 — hard-gate flag, cited rationale,
-per-field confidence, agent trace, interrupt lifecycle.
+per-field confidence, agent trace, interrupt lifecycle, **plus the new "Why This Decision"
+panel**: each fired flag with a severity bar, a "% of decision" share, and an exact
+counterfactual line.
 
 **Say this:** Read the actual rationale text on the slide aloud, verbatim — it's the strongest
 evidence in the deck: *"Billed $5,000.00 for upper GI endoscopy vs CMS benchmark $432.90 —
 variance +1,055%, far above the +20% gate."* Then make the point explicit: *"No rationale in
 this system ever says 'the cost seems high.' It cites the exact numbers, the exact CMS
 locality, the exact EOC page. If a reviewer or an auditor asks 'why was this flagged,' the
-answer is already written down, in numbers, before they even ask."* Close on the interrupt
-lifecycle diagram: *"Approve, modify, or deny resumes the case forward. 'Clarify' loops back to
-the exact same pause point — no new case is created, no state is lost."*
+answer is already written down, in numbers, before they even ask."*
+
+Then go one layer deeper with the counterfactual panel — this is the new material, spend real
+time here: *"We don't just say the gate fired. We say exactly what would have had to be true
+for it not to. For this case: 'billed amount would need to be $519.48 or less' — not
+approximately, the exact number, derived from the same CMS formula that flagged it in the first
+place. And when more than one flag fires on the same case, we rank them — this case is 89%
+driven by the cost variance and 11% by a borderline extraction-confidence gap, so a reviewer
+knows what to look at first instead of reading four flags with no sense of which one actually
+mattered."* Close the loop explicitly: *"This isn't SHAP or LIME — there's no black-box model
+to explain here. It's the actual threshold math, inverted and shown back to the reviewer."*
+Close on the interrupt lifecycle diagram: *"Approve, modify, or deny resumes the case forward.
+'Clarify' loops back to the exact same pause point — no new case is created, no state is
+lost."*
+
+**Anticipate:** "why not just use SHAP/LIME since that's the standard?" → those explain a
+trained model's internal weights; there is no trained model in this decision path to explain —
+`evaluate_hard_gates` is deterministic threshold comparisons, already fully transparent in the
+source. What's genuinely missing without this feature is the *inverse* — the counterfactual —
+which SHAP doesn't give you either. That's what `backend/app/core/explainability.py` adds.
 
 **Transition line:** "All of this is running today, not a mockup — here's the honest state of
 readiness."
@@ -240,7 +275,9 @@ Keep the GitHub link visible; don't read it aloud.
 
 1. "Cost and Policy never call an LLM — they're pure math and pure search."
 2. "The LLM can add a reason to escalate. It can never remove one."
-3. "We measure fairness disparity, but that measurement never touches an individual decision —
-   the hard gates that do, never look at demographics."
-4. "Every rationale cites exact numbers and exact pages — never a vague impression."
+3. "We measure fairness disparity two ways — a frequentist confidence interval and a real
+   Bayesian posterior — but neither measurement ever touches an individual decision; the hard
+   gates that do, never look at demographics."
+4. "Every rationale cites exact numbers and exact pages — and for every fired gate, we can also
+   tell you the exact number that would have avoided it."
 5. "Every mock is labeled in the code itself, not discovered by a skeptical question."

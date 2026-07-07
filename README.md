@@ -56,6 +56,10 @@ conda run -n pa_hack uvicorn app.main:app --reload --port 8000
 
 Health check: `curl http://localhost:8000/health`
 
+The `aarp_policies` Qdrant collection (used by the RAG agent) is populated
+automatically on backend startup if it's missing or empty — no manual step
+needed. To (re)run it by hand: `conda run -n pa_hack python -m app.utils.policy_ingest`.
+
 ### 3. Frontend
 
 ```bash

@@ -89,6 +89,16 @@ def ingest_policies(folder: Path = DEFAULT_POLICIES_DIR) -> int:
     return total
 
 
+def ensure_policies_ingested(folder: Path = DEFAULT_POLICIES_DIR) -> int:
+    """Ingest policies only if the collection is missing or empty. Returns point count added (0 if already populated)."""
+    client = get_qdrant_client()
+    ensure_collection(client)
+    existing = client.count(collection_name=COLLECTION_NAME, exact=True).count
+    if existing > 0:
+        return 0
+    return ingest_policies(folder)
+
+
 if __name__ == "__main__":
     count = ingest_policies()
     print(f"Ingested {count} chunks into {COLLECTION_NAME!r}")

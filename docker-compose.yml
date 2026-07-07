@@ -87,6 +87,7 @@ services:
       FRONTEND_ORIGIN: ${FRONTEND_ORIGIN:-http://localhost:${FRONTEND_PORT:-5173}}
       BACKEND_PORT: ${BACKEND_PORT:-8000}
       POLICIES_DIR: /aarp_policies
+      API_KEY: ${API_KEY}
     volumes:
       - ./aarp_policies:/aarp_policies:ro
     depends_on:
@@ -119,6 +120,7 @@ services:
         VITE_REVIEWER_PASSWORD: ${VITE_REVIEWER_PASSWORD:-reviewer123}
         VITE_ADMIN_USERNAME: ${VITE_ADMIN_USERNAME:-admin_demo}
         VITE_ADMIN_PASSWORD: ${VITE_ADMIN_PASSWORD:-admin123}
+        VITE_API_KEY: ${VITE_API_KEY:-}
     restart: unless-stopped
     ports:
       - "${FRONTEND_PORT:-5173}:80"

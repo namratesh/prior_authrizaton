@@ -4,6 +4,10 @@
 // In dev (`npm run dev`), there's no proxy, so fall back to the local backend port.
 export const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.DEV ? "http://localhost:8000" : "");
 
+// Shared secret required by backend/app/core/auth.py on every /api/v1 call.
+export const API_KEY = import.meta.env.VITE_API_KEY || "";
+const authHeaders: HeadersInit = API_KEY ? { "X-API-Key": API_KEY } : {};
+
 export interface StatusResponse {
   case_id: string;
   case_number: string;
@@ -88,12 +92,12 @@ export async function uploadCase(file: File, query: string): Promise<{ case_id: 
   const form = new FormData();
   form.append("file", file);
   form.append("query", query);
-  const res = await fetch(`${API_URL}/api/v1/upload`, { method: "POST", body: form });
+  const res = await fetch(`${API_URL}/api/v1/upload`, { method: "POST", headers: authHeaders, body: form });
   return json(res);
 }
 
 export async function getStatus(caseId: string): Promise<StatusResponse> {
-  const res = await fetch(`${API_URL}/api/v1/status/${caseId}`);
+  const res = await fetch(`${API_URL}/api/v1/status/${caseId}`, { headers: authHeaders });
   return json(res);
 }
 
@@ -103,14 +107,14 @@ export async function respondToCase(
 ): Promise<{ case_id: string; case_status: string | null; interrupt_reason: string | null }> {
   const res = await fetch(`${API_URL}/api/v1/status/${caseId}/respond`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...authHeaders },
     body: JSON.stringify({ response }),
   });
   return json(res);
 }
 
 export async function getReview(caseId: string): Promise<ReviewResponse> {
-  const res = await fetch(`${API_URL}/api/v1/review/${caseId}`);
+  const res = await fetch(`${API_URL}/api/v1/review/${caseId}`, { headers: authHeaders });
   return json(res);
 }
 
@@ -126,7 +130,7 @@ export interface AdjudicatePayload {
 export async function adjudicate(caseId: string, payload: AdjudicatePayload) {
   const res = await fetch(`${API_URL}/api/v1/review/${caseId}/adjudicate`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...authHeaders },
     body: JSON.stringify(payload),
   });
   return json<{ case_id: string; final_status: string | null; case_status: string | null; decision_letter: string | null }>(res);
@@ -134,19 +138,19 @@ export async function adjudicate(caseId: string, payload: AdjudicatePayload) {
 
 export async function getAdminMetrics(groupBy?: "provider" | "service" | "reviewer"): Promise<AdminMetrics> {
   const qs = groupBy ? `?group_by=${groupBy}` : "";
-  const res = await fetch(`${API_URL}/api/v1/admin/metrics${qs}`);
+  const res = await fetch(`${API_URL}/api/v1/admin/metrics${qs}`, { headers: authHeaders });
   return json(res);
 }
 
 export async function getAdminSettings(): Promise<AdminSettings> {
-  const res = await fetch(`${API_URL}/api/v1/admin/settings`);
+  const res = await fetch(`${API_URL}/api/v1/admin/settings`, { headers: authHeaders });
   return json(res);
 }
 
 export async function updateAdminSettings(payload: Partial<AdminSettings>): Promise<AdminSettings> {
   const res = await fetch(`${API_URL}/api/v1/admin/settings`, {
     method: "PUT",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...authHeaders },
     body: JSON.stringify(payload),
   });
   return json(res);
@@ -155,14 +159,14 @@ export async function updateAdminSettings(payload: Partial<AdminSettings>): Prom
 export async function assignCase(caseId: string, reviewerId: string): Promise<{ case_id: string; assigned_to: string }> {
   const res = await fetch(`${API_URL}/api/v1/review/${caseId}/assign`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...authHeaders },
     body: JSON.stringify({ reviewer_id: reviewerId }),
   });
   return json(res);
 }
 
 export async function unassignCase(caseId: string): Promise<{ case_id: string; assigned_to: null }> {
-  const res = await fetch(`${API_URL}/api/v1/review/${caseId}/unassign`, { method: "POST" });
+  const res = await fetch(`${API_URL}/api/v1/review/${caseId}/unassign`, { method: "POST", headers: authHeaders });
   return json(res);
 }
 
@@ -172,4 +176,20 @@ export function exportCaseAuditUrl(caseId: string): string {
 
 export function exportAllAuditUrl(): string {
   return `${API_URL}/api/v1/admin/audit-export`;
+}
+
+// Plain <a href> can't carry the X-API-Key header, so CSV exports are
+// fetched and saved as a blob instead of linked to directly.
+export async function downloadWithAuth(url: string, filename: string): Promise<void> {
+  const res = await fetch(url, { headers: authHeaders });
+  if (!res.ok) throw new Error(`${res.status}: ${await res.text()}`);
+  const blob = await res.blob();
+  const objectUrl = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = objectUrl;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(objectUrl);
 }

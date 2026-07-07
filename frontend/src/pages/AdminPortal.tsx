@@ -38,6 +38,7 @@ import {
   ReviewResponse,
   exportCaseAuditUrl,
   exportAllAuditUrl,
+  downloadWithAuth,
 } from "../store/api";
 import StatusBadge from "@/components/StatusBadge";
 import LoadingState from "@/components/LoadingState";
@@ -432,13 +433,14 @@ function TraceExplorer({ metrics }: { metrics: AdminMetrics }) {
           <h3 className="text-sm font-medium">Agent Trace &amp; Audit Log</h3>
         </div>
         {metrics.cases.length > 0 && (
-          <a
-            href={exportAllAuditUrl()}
+          <button
+            type="button"
+            onClick={() => downloadWithAuth(exportAllAuditUrl(), "audit_export.csv").catch(() => {})}
             className="flex items-center gap-1 text-xs font-medium text-navy-600 hover:underline"
           >
             <Download size={12} />
             Export All (CSV)
-          </a>
+          </button>
         )}
       </div>
       {metrics.cases.length === 0 ? (
@@ -457,14 +459,17 @@ function TraceExplorer({ metrics }: { metrics: AdminMetrics }) {
                   </span>
                 </AccordionTrigger>
                 <AccordionContent>
-                  <a
-                    href={exportCaseAuditUrl(c.case_id)}
-                    onClick={(e) => e.stopPropagation()}
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      downloadWithAuth(exportCaseAuditUrl(c.case_id), `audit_${c.case_number}.csv`).catch(() => {});
+                    }}
                     className="mb-2 inline-flex items-center gap-1 text-[11px] font-medium text-navy-600 hover:underline"
                   >
                     <Download size={11} />
                     Export this case (CSV)
-                  </a>
+                  </button>
                   {c.rationale && (
                     <div className="mb-3 rounded-lg border border-navy-100 bg-navy-50/50 p-3">
                       <p className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-navy-600">

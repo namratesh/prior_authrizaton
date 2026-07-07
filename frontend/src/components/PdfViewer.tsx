@@ -4,7 +4,7 @@ import { ChevronLeft, ChevronRight, FileText } from "lucide-react";
 import "react-pdf/dist/Page/TextLayer.css";
 import "react-pdf/dist/Page/AnnotationLayer.css";
 import { Button } from "@/components/ui/button";
-import { API_URL } from "@/store/api";
+import { API_URL, API_KEY } from "@/store/api";
 
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
   "pdfjs-dist/build/pdf.worker.min.mjs",
@@ -78,6 +78,33 @@ export default function PdfViewer({
   const containerRef = useRef<HTMLDivElement>(null);
   const [pageWidth, setPageWidth] = useState(380);
 
+  // react-pdf's `file` prop only types { url } (no headers) even though
+  // pdf.js itself supports auth headers — so the PDF is fetched here (with
+  // X-API-Key attached) and handed to <Document> as raw bytes instead.
+  const [pdfData, setPdfData] = useState<ArrayBuffer | null>(null);
+  const [pdfError, setPdfError] = useState(false);
+  useEffect(() => {
+    setPdfData(null);
+    setPdfError(false);
+    let cancelled = false;
+    fetch(`${API_URL}/api/v1/review/${caseId}/pdf`, {
+      headers: API_KEY ? { "X-API-Key": API_KEY } : undefined,
+    })
+      .then((res) => {
+        if (!res.ok) throw new Error(String(res.status));
+        return res.arrayBuffer();
+      })
+      .then((buf) => {
+        if (!cancelled) setPdfData(buf);
+      })
+      .catch(() => {
+        if (!cancelled) setPdfError(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [caseId]);
+
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
@@ -131,8 +158,13 @@ export default function PdfViewer({
         ))}
       </div>
       <div ref={containerRef} className="flex-1 overflow-auto bg-muted/40 p-3">
+        {pdfError ? (
+          <p className="p-4 text-sm text-radiant">Could not load the PDF.</p>
+        ) : !pdfData ? (
+          <p className="p-4 text-sm text-muted-foreground">Loading document...</p>
+        ) : (
         <Document
-          file={`${API_URL}/api/v1/review/${caseId}/pdf`}
+          file={pdfData}
           onLoadSuccess={({ numPages }) => setNumPages(numPages)}
           loading={<p className="p-4 text-sm text-muted-foreground">Loading document...</p>}
           error={<p className="p-4 text-sm text-radiant">Could not load the PDF.</p>}
@@ -145,6 +177,7 @@ export default function PdfViewer({
             className="overflow-hidden rounded-lg shadow-elevated"
           />
         </Document>
+        )}
       </div>
     </div>
   );

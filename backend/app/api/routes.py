@@ -14,6 +14,7 @@ from fastapi.responses import Response
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
+from app.core.auth import require_api_key
 from app.core.case_runner import resume_case, start_case
 from app.core.fairness import compute_fairness_cohorts
 from app.core.feedback import record_correction
@@ -24,7 +25,7 @@ from app.db.session import get_db
 from app.utils.case_number import format_case_number
 from app.utils.pdf_text import extract_full_text
 
-router = APIRouter(prefix="/api/v1")
+router = APIRouter(prefix="/api/v1", dependencies=[Depends(require_api_key)])
 
 # Uploaded PDFs are kept on disk (outside the 5-endpoint table in CLAUDE.md)
 # purely so the Reviewer Portal's react-pdf viewer has real bytes to render —
@@ -86,7 +87,8 @@ def upload_case(
 
 
 @router.get("/status/{case_id}")
-def get_status(case_id: str, db: Session = Depends(get_db)):
+@limiter.limit("60/minute")
+def get_status(request: Request, case_id: str, db: Session = Depends(get_db)):
     row = db.execute(
         text(
             "SELECT case_number, created_at, current_phase, final_status, "
@@ -158,7 +160,8 @@ def _parse_dt(value):
 
 
 @router.get("/review/{case_id}")
-def get_review(case_id: str, db: Session = Depends(get_db)):
+@limiter.limit("60/minute")
+def get_review(request: Request, case_id: str, db: Session = Depends(get_db)):
     row = db.execute(
         text(
             "SELECT case_number, created_at, patient_name, current_phase, final_status, "
@@ -209,7 +212,8 @@ def get_review(case_id: str, db: Session = Depends(get_db)):
 
 
 @router.get("/review/{case_id}/pdf")
-def get_review_pdf(case_id: str):
+@limiter.limit("60/minute")
+def get_review_pdf(request: Request, case_id: str):
     """Serves the original uploaded PDF bytes for the Reviewer Portal's
     react-pdf viewer. Not one of CLAUDE.md's 5 core endpoints — added because
     the split-screen spec requires rendering the actual document, and Intake
@@ -256,7 +260,8 @@ def assign_case(request: Request, case_id: str, payload: dict, db: Session = Dep
 
 
 @router.post("/review/{case_id}/unassign")
-def unassign_case(case_id: str, db: Session = Depends(get_db)):
+@limiter.limit("30/minute")
+def unassign_case(request: Request, case_id: str, db: Session = Depends(get_db)):
     db.execute(
         text("UPDATE cases SET assigned_to = NULL, assigned_at = NULL WHERE id = :id"), {"id": case_id}
     )
@@ -265,7 +270,8 @@ def unassign_case(case_id: str, db: Session = Depends(get_db)):
 
 
 @router.get("/review/{case_id}/audit-export")
-def export_case_audit(case_id: str, db: Session = Depends(get_db)):
+@limiter.limit("10/minute")
+def export_case_audit(request: Request, case_id: str, db: Session = Depends(get_db)):
     """CSV export of one case's full agent trace — the compliance/audit
     reporting the Admin trace explorer couldn't produce (view-only JSON,
     no download)."""
@@ -301,7 +307,8 @@ def export_case_audit(case_id: str, db: Session = Depends(get_db)):
 
 
 @router.get("/admin/audit-export")
-def export_all_audit(db: Session = Depends(get_db)):
+@limiter.limit("10/minute")
+def export_all_audit(request: Request, db: Session = Depends(get_db)):
     """CSV export across all cases — regulatory-style audit report the
     Admin Portal had no export path for at all."""
     rows = db.execute(
@@ -333,7 +340,8 @@ def export_all_audit(db: Session = Depends(get_db)):
 
 
 @router.get("/admin/settings")
-def get_admin_settings(db: Session = Depends(get_db)):
+@limiter.limit("60/minute")
+def get_admin_settings(request: Request, db: Session = Depends(get_db)):
     s = get_settings(db)
     return {
         "sla_hours": s.sla_hours,
@@ -345,7 +353,8 @@ def get_admin_settings(db: Session = Depends(get_db)):
 
 
 @router.put("/admin/settings")
-def put_admin_settings(payload: dict, db: Session = Depends(get_db)):
+@limiter.limit("20/minute")
+def put_admin_settings(request: Request, payload: dict, db: Session = Depends(get_db)):
     """Admin-tunable thresholds — previously hardcoded constants with no
     configuration surface at all. Takes effect on the next case (agents read
     settings_store.get_settings(db) at call time, not at process start)."""
@@ -415,7 +424,8 @@ def adjudicate(request: Request, case_id: str, payload: dict, db: Session = Depe
 
 
 @router.get("/admin/metrics")
-def admin_metrics(db: Session = Depends(get_db), group_by: str | None = None):
+@limiter.limit("30/minute")
+def admin_metrics(request: Request, db: Session = Depends(get_db), group_by: str | None = None):
     """group_by: optional "provider" | "service" | "reviewer" — adds a
     `segments` breakdown of leakage/override-rate by that dimension, so
     leadership/admin analytics aren't aggregate-only."""

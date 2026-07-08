@@ -12,6 +12,8 @@ import {
   Cell,
   ReferenceLine,
   CartesianGrid,
+  PieChart,
+  Pie,
 } from "recharts";
 import {
   DollarSign,
@@ -22,6 +24,7 @@ import {
   ClipboardList,
   Hourglass,
   CheckCircle2,
+  AlertTriangle,
   Info,
   Code2,
   Search,
@@ -50,6 +53,7 @@ import { CHART_COLORS } from "@/lib/chart-theme";
 import { cn } from "@/lib/utils";
 import { summarizeTraceEntry } from "@/lib/traceSummary";
 import { useCountUp } from "@/lib/useCountUp";
+import { is_expedite_client } from "@/store/sla";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge, type BadgeProps } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -104,11 +108,12 @@ function StatTile({
 }: {
   icon: typeof ClipboardList;
   label: string;
-  value: string | number;
+  value: number;
   accent?: "navy" | "teal" | "radiant";
 }) {
   const accentClass =
     accent === "radiant" ? "text-radiant" : accent === "teal" ? "text-teal-600" : "text-navy-600";
+  const animated = useCountUp(value, 600);
   return (
     <Card>
       <CardContent className="flex items-center gap-3 pt-6">
@@ -117,7 +122,7 @@ function StatTile({
         </div>
         <div>
           <p className="text-xs font-medium text-muted-foreground">{label}</p>
-          <p className="font-display text-2xl font-bold tabular-nums">{value}</p>
+          <p className="font-display text-2xl font-bold tabular-nums">{Math.round(animated)}</p>
         </div>
       </CardContent>
     </Card>
@@ -147,6 +152,77 @@ function LeakageTile({ value }: { value: number }) {
         <p className="mt-1 font-display text-4xl font-bold tabular-nums text-gradient-radiant">
           ${animated.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
         </p>
+      </CardContent>
+    </Card>
+  );
+}
+
+const STATUS_BUCKET_COLORS: Record<string, string> = {
+  Approved: "#199e88",
+  Denied: "#dc2626",
+  "In Review": "#e0a000",
+  Processing: CHART_COLORS.axis,
+};
+
+function CaseStatusDonut({ cases }: { cases: AdminMetrics["cases"] }) {
+  const buckets = useMemo(() => {
+    const counts: Record<string, number> = { Approved: 0, Denied: 0, "In Review": 0, Processing: 0 };
+    for (const c of cases) {
+      if (c.final_status === "Approved") counts.Approved++;
+      else if (c.final_status === "Denied") counts.Denied++;
+      else if (c.needs_human_review) counts["In Review"]++;
+      else counts.Processing++;
+    }
+    return Object.entries(counts)
+      .filter(([, n]) => n > 0)
+      .map(([name, value]) => ({ name, value }));
+  }, [cases]);
+
+  return (
+    <Card>
+      <CardContent className="pt-6">
+        <div className="mb-2 flex items-center gap-2 text-muted-foreground">
+          <Scale size={16} className="text-navy-600" />
+          <h3 className="text-sm font-medium">Case Status Breakdown</h3>
+        </div>
+        {buckets.length === 0 ? (
+          <EmptyState label="No cases yet" />
+        ) : (
+          <div className="flex items-center gap-4">
+            <ResponsiveContainer width="50%" height={140}>
+              <PieChart>
+                <Pie
+                  data={buckets}
+                  dataKey="value"
+                  nameKey="name"
+                  innerRadius={38}
+                  outerRadius={58}
+                  paddingAngle={2}
+                  strokeWidth={0}
+                >
+                  {buckets.map((b) => (
+                    <Cell key={b.name} fill={STATUS_BUCKET_COLORS[b.name]} />
+                  ))}
+                </Pie>
+                <Tooltip content={<ChartTooltip formatter={(v) => `${v} case${v === 1 ? "" : "s"}`} />} />
+              </PieChart>
+            </ResponsiveContainer>
+            <ul className="flex-1 space-y-1.5">
+              {buckets.map((b) => (
+                <li key={b.name} className="flex items-center justify-between gap-2 text-xs">
+                  <span className="flex items-center gap-1.5 text-muted-foreground">
+                    <span
+                      className="inline-block h-2 w-2 rounded-full"
+                      style={{ background: STATUS_BUCKET_COLORS[b.name] }}
+                    />
+                    {b.name}
+                  </span>
+                  <span className="font-medium tabular-nums text-foreground">{b.value}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
@@ -515,6 +591,28 @@ function SegmentDrilldownCard() {
           <EmptyState label="No finalized cases to segment yet" />
         </div>
       ) : (
+        <div className="border-b border-border p-4">
+          <ResponsiveContainer width="100%" height={160}>
+            <BarChart data={segments} margin={{ top: 8, right: 8, bottom: 0, left: 8 }}>
+              <defs>
+                <linearGradient id="segmentFill" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor={CHART_COLORS.primary} stopOpacity={0.95} />
+                  <stop offset="100%" stopColor={CHART_COLORS.teal} stopOpacity={0.75} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke={CHART_COLORS.grid} vertical={false} />
+              <XAxis dataKey="key" tick={{ fontSize: 10, fill: CHART_COLORS.axis }} tickLine={false} axisLine={false} />
+              <YAxis tick={{ fontSize: 10, fill: CHART_COLORS.axis }} tickLine={false} axisLine={false} />
+              <Tooltip
+                cursor={{ fill: "rgba(38,70,131,0.06)" }}
+                content={<ChartTooltip formatter={(v) => `$${v.toLocaleString()}`} />}
+              />
+              <Bar dataKey="leakage" fill="url(#segmentFill)" radius={[6, 6, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      )}
+      {segments && segments.length > 0 && (
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="bg-muted/70">
@@ -792,7 +890,10 @@ export default function AdminPortal() {
     const total = metrics.cases.length;
     const inReview = metrics.cases.filter((c) => c.needs_human_review && !c.final_status).length;
     const resolved = metrics.cases.filter((c) => c.final_status).length;
-    return { total, inReview, resolved };
+    const slaAtRisk = metrics.cases.filter(
+      (c) => !c.final_status && is_expedite_client(c.sla_deadline)
+    ).length;
+    return { total, inReview, resolved, slaAtRisk };
   }, [metrics]);
 
   if (!metrics || !kpis) return <LoadingState label="Loading metrics..." />;
@@ -808,12 +909,16 @@ export default function AdminPortal() {
 
       <section className="space-y-4">
         <SectionHeader icon={ClipboardList} title="Overview" />
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <StatTile icon={ClipboardList} label="Total Cases" value={kpis.total} accent="navy" />
           <StatTile icon={Hourglass} label="In Review" value={kpis.inReview} accent="radiant" />
           <StatTile icon={CheckCircle2} label="Resolved" value={kpis.resolved} accent="teal" />
+          <StatTile icon={AlertTriangle} label="SLA at Risk" value={kpis.slaAtRisk} accent="radiant" />
         </div>
-        <LeakageTile value={metrics.leakage_prevented} />
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+          <LeakageTile value={metrics.leakage_prevented} />
+          <CaseStatusDonut cases={metrics.cases} />
+        </div>
       </section>
 
       <section className="space-y-4">

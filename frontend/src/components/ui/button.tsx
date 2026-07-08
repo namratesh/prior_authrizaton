@@ -46,14 +46,29 @@ export interface ButtonProps
 }
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant, size, asChild = false, ...props }, ref) => {
+  ({ className, variant, size, asChild = false, children, ...props }, ref) => {
     const Comp = asChild ? Slot : "button";
+    // Gradient CTAs get a light sweep on hover — a subtle "futuristic" sheen
+    // instead of a flat brightness bump. Skipped for asChild (Slot merges
+    // props onto a single child, so we can't inject a sibling overlay span).
+    const shimmer = !asChild && (variant === "gradient" || variant === "radiant");
     return (
       <Comp
-        className={cn(buttonVariants({ variant, size, className }))}
+        className={cn(
+          buttonVariants({ variant, size, className }),
+          shimmer && "group relative overflow-hidden"
+        )}
         ref={ref}
         {...props}
-      />
+      >
+        {children}
+        {shimmer && (
+          <span
+            aria-hidden
+            className="pointer-events-none absolute inset-0 -translate-x-full bg-[linear-gradient(115deg,transparent_40%,rgba(255,255,255,0.4)_50%,transparent_60%)] group-hover:animate-shimmer"
+          />
+        )}
+      </Comp>
     );
   }
 );

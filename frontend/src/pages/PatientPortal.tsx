@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { User } from "lucide-react";
 import { useAppStore } from "../store/useAppStore";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import SubmissionView from "./patient/SubmissionView";
@@ -36,11 +37,16 @@ export default function PatientPortal() {
 
   return (
     <div>
-      <div className="mx-auto max-w-2xl px-6 pt-10 text-center">
-        <h1 className="font-display text-3xl font-bold tracking-tight text-gradient">
-          Patient Portal
-        </h1>
-        <p className="mt-2 text-sm text-muted-foreground">{SUBTITLES[view]}</p>
+      <div className="mx-auto max-w-2xl px-6 pt-10">
+        <div className="glass-card flex flex-col items-center gap-2 rounded-2xl px-6 py-6 text-center">
+          <span className="grid h-10 w-10 place-items-center rounded-xl bg-[linear-gradient(135deg,#264683,#199e88)] text-white shadow-glow">
+            <User size={18} />
+          </span>
+          <h1 className="font-display text-3xl font-bold tracking-tight text-gradient">
+            Patient Portal
+          </h1>
+          <p className="text-sm text-muted-foreground">{SUBTITLES[view]}</p>
+        </div>
       </div>
 
       <div className="flex justify-center pt-6">

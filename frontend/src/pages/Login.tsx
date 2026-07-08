@@ -214,10 +214,6 @@ export default function Login() {
               Log in as {ROLE_CREDENTIALS[role].label}
             </Button>
           </form>
-
-          <div className="mt-6 rounded-lg border border-border bg-muted/60 px-3 py-2 text-center text-xs text-muted-foreground">
-            MVP credentials — <span className="font-medium text-foreground">{ROLE_CREDENTIALS[role].username}</span> / {ROLE_CREDENTIALS[role].password}
-          </div>
         </motion.div>
       </div>
     </div>

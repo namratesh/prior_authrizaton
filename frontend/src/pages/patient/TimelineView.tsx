@@ -57,7 +57,18 @@ export default function TimelineView({ caseId }: { caseId: string }) {
               {status.requested_service_description || "Detecting requested service..."}
             </p>
           </div>
-          <UrgencyBadge slaDeadline={status.sla_deadline} />
+          <div className="flex items-center gap-2">
+            {status.final_status == null && (
+              <span className="flex items-center gap-1.5 rounded-full border border-teal-200 bg-teal-50/80 px-2.5 py-1 text-[11px] font-medium text-teal-700">
+                <span className="relative flex h-1.5 w-1.5">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-teal-500 opacity-75" />
+                  <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-teal-500" />
+                </span>
+                Live
+              </span>
+            )}
+            <UrgencyBadge slaDeadline={status.sla_deadline} />
+          </div>
         </CardContent>
       </Card>
       <Timeline

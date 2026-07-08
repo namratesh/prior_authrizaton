@@ -76,12 +76,17 @@ function CaseQueue({ onSelect }: { onSelect: (caseId: string) => void }) {
 
   return (
     <div className="mx-auto max-w-3xl p-8">
-      <div className="mb-1 flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2">
-          <span className="grid h-9 w-9 place-items-center rounded-xl bg-[linear-gradient(135deg,#264683,#199e88)] text-white shadow-soft">
+      <div className="glass-card mb-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl px-5 py-4">
+        <div className="flex items-center gap-3">
+          <span className="grid h-9 w-9 place-items-center rounded-xl bg-[linear-gradient(135deg,#264683,#199e88)] text-white shadow-glow">
             <ClipboardCheck size={18} />
           </span>
-          <h1 className="font-display text-2xl font-bold tracking-tight">Cases Awaiting Your Review</h1>
+          <div>
+            <h1 className="font-display text-2xl font-bold tracking-tight">Cases Awaiting Your Review</h1>
+            <p className="text-xs text-muted-foreground">
+              {allCases.length} case{allCases.length === 1 ? "" : "s"} flagged for human review.
+            </p>
+          </div>
         </div>
         <select
           value={reviewerId}
@@ -96,9 +101,6 @@ function CaseQueue({ onSelect }: { onSelect: (caseId: string) => void }) {
           ))}
         </select>
       </div>
-      <p className="mb-4 text-sm text-muted-foreground">
-        {allCases.length} case{allCases.length === 1 ? "" : "s"} flagged for human review.
-      </p>
 
       <div className="mb-4 flex gap-1 rounded-lg bg-muted/50 p-1">
         {TABS.map((t) => (

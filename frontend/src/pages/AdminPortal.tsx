@@ -115,7 +115,7 @@ function StatTile({
     accent === "radiant" ? "text-radiant" : accent === "teal" ? "text-teal-600" : "text-navy-600";
   const animated = useCountUp(value, 600);
   return (
-    <Card>
+    <Card className="transition-all duration-300 hover:-translate-y-0.5 hover:shadow-elevated">
       <CardContent className="flex items-center gap-3 pt-6">
         <div className={cnBg(accent)}>
           <Icon size={18} className={accentClass} />
@@ -138,7 +138,7 @@ function cnBg(accent: "navy" | "teal" | "radiant") {
 function LeakageTile({ value }: { value: number }) {
   const animated = useCountUp(value, 3600);
   return (
-    <Card className="relative overflow-hidden">
+    <Card className="relative overflow-hidden shadow-glow transition-shadow duration-300 hover:shadow-elevated">
       <div
         aria-hidden
         className="pointer-events-none absolute -right-10 -top-12 h-40 w-40 rounded-full blur-2xl"
@@ -179,7 +179,7 @@ function CaseStatusDonut({ cases }: { cases: AdminMetrics["cases"] }) {
   }, [cases]);
 
   return (
-    <Card>
+    <Card className="transition-all duration-300 hover:-translate-y-0.5 hover:shadow-elevated">
       <CardContent className="pt-6">
         <div className="mb-2 flex items-center gap-2 text-muted-foreground">
           <Scale size={16} className="text-navy-600" />
@@ -230,7 +230,7 @@ function CaseStatusDonut({ cases }: { cases: AdminMetrics["cases"] }) {
 
 function AccuracyTile({ data }: { data: AdminMetrics["accuracy_drift"] }) {
   return (
-    <Card>
+    <Card className="transition-all duration-300 hover:-translate-y-0.5 hover:shadow-elevated">
       <CardContent className="pt-6">
         <div className="mb-2 flex items-center gap-2 text-muted-foreground">
           <TrendingUp size={16} className="text-teal-600" />
@@ -352,7 +352,7 @@ function BiasFairnessCard({
     : null;
 
   return (
-    <Card>
+    <Card className="transition-all duration-300 hover:-translate-y-0.5 hover:shadow-elevated">
       <CardContent className="pt-6">
         <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
           <div className="flex items-center gap-2 text-muted-foreground">
@@ -900,20 +900,39 @@ export default function AdminPortal() {
 
   return (
     <div className="mx-auto max-w-6xl space-y-10 p-8">
-      <div>
-        <h1 className="font-display text-3xl font-bold tracking-tight text-gradient">
-          Admin Dashboard
-        </h1>
-        <p className="mt-1 text-sm text-muted-foreground">System health, savings, and audit trail.</p>
+      <div className="glass-card flex flex-wrap items-center justify-between gap-3 rounded-2xl px-6 py-5">
+        <div>
+          <h1 className="font-display text-3xl font-bold tracking-tight text-gradient">
+            Admin Dashboard
+          </h1>
+          <p className="mt-1 text-sm text-muted-foreground">System health, savings, and audit trail.</p>
+        </div>
+        <div className="flex items-center gap-1.5 rounded-full border border-teal-200 bg-teal-50/80 px-3 py-1 text-xs font-medium text-teal-700">
+          <span className="relative flex h-2 w-2">
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-teal-500 opacity-75" />
+            <span className="relative inline-flex h-2 w-2 rounded-full bg-teal-500" />
+          </span>
+          Live
+        </div>
       </div>
 
       <section className="space-y-4">
         <SectionHeader icon={ClipboardList} title="Overview" />
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <StatTile icon={ClipboardList} label="Total Cases" value={kpis.total} accent="navy" />
-          <StatTile icon={Hourglass} label="In Review" value={kpis.inReview} accent="radiant" />
-          <StatTile icon={CheckCircle2} label="Resolved" value={kpis.resolved} accent="teal" />
-          <StatTile icon={AlertTriangle} label="SLA at Risk" value={kpis.slaAtRisk} accent="radiant" />
+          {[
+            { icon: ClipboardList, label: "Total Cases", value: kpis.total, accent: "navy" as const },
+            { icon: Hourglass, label: "In Review", value: kpis.inReview, accent: "radiant" as const },
+            { icon: CheckCircle2, label: "Resolved", value: kpis.resolved, accent: "teal" as const },
+            { icon: AlertTriangle, label: "SLA at Risk", value: kpis.slaAtRisk, accent: "radiant" as const },
+          ].map((tile, i) => (
+            <div
+              key={tile.label}
+              className="animate-count-blur-in"
+              style={{ animationDelay: `${i * 80}ms` }}
+            >
+              <StatTile icon={tile.icon} label={tile.label} value={tile.value} accent={tile.accent} />
+            </div>
+          ))}
         </div>
         <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
           <LeakageTile value={metrics.leakage_prevented} />

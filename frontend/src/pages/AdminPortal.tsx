@@ -266,8 +266,9 @@ function AccuracyTile({ data }: { data: AdminMetrics["accuracy_drift"] }) {
   );
 }
 
-const FAIRNESS_DIMENSIONS: { key: AdminMetrics["fairness_cohorts"][number]["dimension"] | "demographics"; label: string }[] = [
-  { key: "demographics", label: "Age / Region" },
+const FAIRNESS_DIMENSIONS: { key: AdminMetrics["fairness_cohorts"][number]["dimension"]; label: string }[] = [
+  { key: "age", label: "Age" },
+  { key: "region", label: "Region" },
   { key: "provider", label: "Provider" },
   { key: "service", label: "Service" },
 ];
@@ -341,12 +342,10 @@ function BiasFairnessCard({
   data: AdminMetrics["fairness_cohorts"];
   finalizedTotal: number;
 }) {
-  const [dimension, setDimension] = useState<(typeof FAIRNESS_DIMENSIONS)[number]["key"]>("demographics");
+  const [dimension, setDimension] = useState<(typeof FAIRNESS_DIMENSIONS)[number]["key"]>("age");
   const [lens, setLens] = useState<"frequentist" | "bayesian">("frequentist");
 
-  const filtered = data.filter((c) =>
-    dimension === "demographics" ? c.dimension === "age" || c.dimension === "region" : c.dimension === dimension
-  );
+  const filtered = data.filter((c) => c.dimension === dimension);
   const overallRate = data.length
     ? data.reduce((sum, c) => sum + c.approval_rate * c.total, 0) / data.reduce((sum, c) => sum + c.total, 0)
     : null;

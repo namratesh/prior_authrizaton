@@ -98,7 +98,7 @@ export default function DecisionDetail({ caseId, onBack }: { caseId: string; onB
             <DialogTrigger asChild>
               <Button variant="default" className="mt-2">
                 <MessageCircle size={16} />
-                Ask a Human
+                Ask Customer Support
               </Button>
             </DialogTrigger>
             <DialogContent>
